@@ -58,8 +58,8 @@ export default function TransactionsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Transactions</h1>
-          <p className="text-sm text-zinc-400">Historique de tous vos mouvements</p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Transactions</h1>
+          <p className="text-sm text-zinc-500 mt-1">Historique de tous vos mouvements</p>
         </div>
         <Button variant="outline" size="sm" onClick={handleExport}>
           <Download className="mr-2 h-4 w-4" /> Export CSV
@@ -77,7 +77,7 @@ export default function TransactionsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-800 text-left text-xs text-zinc-500">
+                <tr className="border-b border-white/[0.06] text-left text-xs text-zinc-500">
                   <th className="px-6 py-3 font-medium">Date</th>
                   <th className="px-6 py-3 font-medium">Type</th>
                   <th className="px-6 py-3 font-medium">Méthode</th>
@@ -88,7 +88,7 @@ export default function TransactionsPage() {
               </thead>
               <tbody>
                 {transactions.map((tx) => (
-                  <tr key={tx.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
+                  <tr key={tx.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
                     <td className="px-6 py-4 text-zinc-300">
                       {new Date(tx.createdAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                     </td>

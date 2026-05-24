@@ -6,6 +6,7 @@ import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { StripeCheckout } from "@/components/checkout/stripe-checkout";
+import { Lock, Shield, CreditCard } from "lucide-react";
 
 interface LinkData {
   id: string;
@@ -55,7 +56,7 @@ export default function PublicPayPage() {
 
   if (notFound) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4">
+      <div className="flex min-h-screen items-center justify-center bg-[#06060a] px-4">
         <Card className="max-w-md text-center p-8">
           <CardTitle>Lien introuvable</CardTitle>
           <CardDescription className="mt-2">Ce lien de paiement n&apos;existe pas ou a été désactivé.</CardDescription>
@@ -65,21 +66,32 @@ export default function PublicPayPage() {
   }
 
   if (!linkData) {
-    return <div className="flex min-h-screen items-center justify-center bg-zinc-950"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#06060a]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+      </div>
+    );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4 py-8">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-600/10 via-zinc-950 to-zinc-950" />
-      <Card className="relative w-full max-w-lg p-8">
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 h-10 w-10 rounded-xl gradient-brand flex items-center justify-center">
+    <div className="flex min-h-screen items-center justify-center bg-[#06060a] px-4 py-8 noise">
+      {/* Background glow */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 h-[500px] w-[500px] rounded-full bg-brand-500/[0.04] blur-[120px]" />
+      </div>
+
+      <Card className="relative w-full max-w-lg p-8 border-white/[0.08]">
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <div className="mx-auto mb-4 h-12 w-12 rounded-2xl gradient-brand flex items-center justify-center shadow-lg shadow-brand-500/20">
             <span className="text-lg font-bold text-white">Y</span>
           </div>
           <CardTitle className="text-xl">{linkData.label}</CardTitle>
-          <CardDescription className="mt-1">Payer {linkData.user.name}</CardDescription>
+          <CardDescription className="mt-1.5">Payer {linkData.user.name}</CardDescription>
           {linkData.fixedAmount && (
-            <p className="mt-3 text-3xl font-bold text-white">{(linkData.fixedAmount / 100).toFixed(2)} €</p>
+            <p className="mt-4 text-4xl font-bold text-white tracking-tight">
+              {(linkData.fixedAmount / 100).toFixed(2)} <span className="text-lg text-zinc-400">EUR</span>
+            </p>
           )}
         </div>
 
@@ -128,15 +140,15 @@ export default function PublicPayPage() {
           </form>
         ) : (
           <div className="space-y-4">
-            <div className="rounded-lg bg-zinc-800/50 border border-zinc-700 p-4 mb-4">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-zinc-400">Montant</span>
-                <span className="text-white font-semibold text-lg">{(payAmount / 100).toFixed(2)} €</span>
+            <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-zinc-500">Montant</span>
+                <span className="text-white font-bold text-xl tracking-tight">{(payAmount / 100).toFixed(2)} €</span>
               </div>
               {payerName && (
-                <div className="flex justify-between items-center text-sm mt-2">
-                  <span className="text-zinc-400">De</span>
-                  <span className="text-zinc-300">{payerName}</span>
+                <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/[0.06]">
+                  <span className="text-sm text-zinc-500">De</span>
+                  <span className="text-sm text-zinc-300">{payerName}</span>
                 </div>
               )}
             </div>
@@ -153,21 +165,22 @@ export default function PublicPayPage() {
 
             <button
               onClick={() => setShowCheckout(false)}
-              className="w-full text-center text-sm text-zinc-500 hover:text-zinc-300 mt-4"
+              className="w-full text-center text-sm text-zinc-600 hover:text-zinc-400 transition-colors mt-4"
             >
-              ← Modifier les informations
+              &larr; Modifier les informations
             </button>
           </div>
         )}
 
-        <div className="mt-6 flex items-center justify-center gap-4 text-[10px] text-zinc-500">
-          <span>Paiement sécurisé</span>
-          <span>•</span>
-          <span>PSD2 / SCA</span>
-          <span>•</span>
-          <span>Chiffré SSL</span>
+        {/* Trust footer */}
+        <div className="mt-8 pt-6 border-t border-white/[0.04]">
+          <div className="flex items-center justify-center gap-6 text-[11px] text-zinc-600">
+            <span className="flex items-center gap-1"><Lock className="h-3 w-3" /> SSL</span>
+            <span className="flex items-center gap-1"><Shield className="h-3 w-3" /> PSD2</span>
+            <span className="flex items-center gap-1"><CreditCard className="h-3 w-3" /> 3D Secure</span>
+          </div>
+          <p className="mt-3 text-center text-[11px] text-zinc-700">Paiement sécurisé par Yourazz</p>
         </div>
-        <p className="mt-2 text-center text-xs text-zinc-600">Propulsé par Yourazz</p>
       </Card>
     </div>
   );

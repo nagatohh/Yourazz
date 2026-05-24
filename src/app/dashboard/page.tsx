@@ -26,36 +26,40 @@ export default function DashboardPage() {
 
   const fmt = (n: number) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(n / 100);
 
-  if (!stats) return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div>;
+  if (!stats) return (
+    <div className="flex h-64 items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+    </div>
+  );
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-white">Tableau de bord</h1>
-        <p className="text-sm text-zinc-400">Vue d&apos;ensemble de votre activité</p>
+        <h1 className="text-2xl font-bold text-white tracking-tight">Tableau de bord</h1>
+        <p className="text-sm text-zinc-500 mt-1">Vue d&apos;ensemble de votre activité</p>
       </div>
 
       {/* Balance cards */}
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card className="border-brand-600/20 bg-gradient-to-br from-brand-600/5 to-zinc-900/50">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-brand-600/10 p-2.5">
-              <Wallet className="h-5 w-5 text-brand-500" />
+        <Card className="border-brand-500/10 bg-gradient-to-br from-brand-500/[0.05] to-transparent">
+          <div className="flex items-center gap-4">
+            <div className="rounded-xl bg-brand-500/10 p-3">
+              <Wallet className="h-5 w-5 text-brand-400" />
             </div>
             <div>
-              <p className="text-sm text-zinc-400">Solde disponible</p>
-              <p className="text-2xl font-bold text-white">{fmt(stats.availableBalance)}</p>
+              <p className="text-sm text-zinc-500">Solde disponible</p>
+              <p className="text-2xl font-bold text-white tracking-tight">{fmt(stats.availableBalance)}</p>
             </div>
           </div>
         </Card>
         <Card>
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-amber-600/10 p-2.5">
-              <Clock className="h-5 w-5 text-amber-500" />
+          <div className="flex items-center gap-4">
+            <div className="rounded-xl bg-amber-500/10 p-3">
+              <Clock className="h-5 w-5 text-amber-400" />
             </div>
             <div>
-              <p className="text-sm text-zinc-400">En attente</p>
-              <p className="text-2xl font-bold text-white">{fmt(stats.pendingBalance)}</p>
+              <p className="text-sm text-zinc-500">En attente</p>
+              <p className="text-2xl font-bold text-white tracking-tight">{fmt(stats.pendingBalance)}</p>
             </div>
           </div>
         </Card>
@@ -77,18 +81,18 @@ export default function DashboardPage() {
             <AreaChart data={stats.weeklyData}>
               <defs>
                 <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#DC2626" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#DC2626" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#71717a", fontSize: 12 }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fill: "#71717a", fontSize: 12 }} tickFormatter={(v) => `${v / 100}€`} />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#52525b", fontSize: 12 }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: "#52525b", fontSize: 12 }} tickFormatter={(v) => `${v / 100}€`} />
               <Tooltip
-                contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: "8px" }}
-                labelStyle={{ color: "#a1a1aa" }}
+                contentStyle={{ background: "#0f0f14", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "12px" }}
+                labelStyle={{ color: "#71717a" }}
                 formatter={(value: number) => [fmt(value), "Revenus"]}
               />
-              <Area type="monotone" dataKey="revenue" stroke="#DC2626" strokeWidth={2} fill="url(#colorRevenue)" />
+              <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2} fill="url(#colorRevenue)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>

@@ -1,7 +1,12 @@
 import { HTMLAttributes } from "react";
 
 export function Card({ className = "", ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={`rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 ${className}`} {...props} />;
+  return (
+    <div
+      className={`rounded-2xl border border-white/[0.06] bg-white/[0.03] p-6 backdrop-blur-sm ${className}`}
+      {...props}
+    />
+  );
 }
 
 export function CardHeader({ className = "", ...props }: HTMLAttributes<HTMLDivElement>) {

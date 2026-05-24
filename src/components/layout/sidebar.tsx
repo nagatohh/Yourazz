@@ -33,40 +33,40 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-zinc-800 bg-zinc-950">
-      <div className="flex h-16 items-center gap-2 border-b border-zinc-800 px-6">
-        <div className="h-8 w-8 rounded-lg gradient-brand flex items-center justify-center">
+    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-white/[0.06] bg-[#0a0a0f]">
+      <div className="flex h-16 items-center gap-3 border-b border-white/[0.06] px-6">
+        <div className="h-8 w-8 rounded-xl gradient-brand flex items-center justify-center shadow-lg shadow-brand-500/20">
           <span className="text-sm font-bold text-white">Y</span>
         </div>
-        <span className="text-lg font-bold text-white">Yourazz</span>
+        <span className="text-lg font-semibold text-white tracking-tight">Yourazz</span>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav className="flex-1 space-y-0.5 px-3 py-4">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                 isActive
-                  ? "bg-brand-600/10 text-brand-500"
-                  : "text-zinc-400 hover:bg-zinc-800/50 hover:text-white"
+                  ? "bg-brand-500/10 text-brand-400 shadow-sm"
+                  : "text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200"
               }`}
             >
-              <item.icon className="h-4.5 w-4.5" />
+              <item.icon className="h-[18px] w-[18px]" />
               {item.label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="border-t border-zinc-800 p-3">
+      <div className="border-t border-white/[0.06] p-3">
         <button
           onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-400 transition-colors hover:bg-zinc-800/50 hover:text-white"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-500 transition-all duration-200 hover:bg-white/[0.04] hover:text-zinc-200"
         >
-          <LogOut className="h-4.5 w-4.5" />
+          <LogOut className="h-[18px] w-[18px]" />
           Déconnexion
         </button>
       </div>
