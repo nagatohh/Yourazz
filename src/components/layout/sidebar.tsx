@@ -163,7 +163,8 @@ export function Sidebar() {
           <Logo size="sm" />
           <button
             onClick={() => setOpen(false)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:text-white transition-colors"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-zinc-400 hover:text-white transition-colors"
+            aria-label="Fermer le menu"
           >
             <X className="h-5 w-5" />
           </button>

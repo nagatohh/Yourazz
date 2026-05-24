@@ -33,9 +33,9 @@ export default function AdminPaymentsPage() {
   const fmt = (n: number) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(n / 100);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight">Paiements</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Paiements</h1>
         <p className="text-sm text-zinc-500 mt-1">Tous les paiements de la plateforme</p>
       </div>
 
@@ -50,45 +50,69 @@ export default function AdminPaymentsPage() {
             <button onClick={() => window.location.reload()} className="text-xs text-brand-400 hover:text-brand-300">Réessayer</button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/[0.06] text-left text-xs text-zinc-500">
-                  <th className="px-6 py-3 font-medium">Date</th>
-                  <th className="px-6 py-3 font-medium">Client</th>
-                  <th className="px-6 py-3 font-medium">Destinataire</th>
-                  <th className="px-6 py-3 font-medium">Montant</th>
-                  <th className="px-6 py-3 font-medium">Statut</th>
-                  <th className="px-6 py-3 font-medium">Reçu</th>
-                  <th className="px-6 py-3 font-medium">Stripe ID</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((tx) => (
-                  <tr key={tx.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
-                    <td className="px-6 py-4 text-zinc-400">
-                      {new Date(tx.createdAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
-                    </td>
-                    <td className="px-6 py-4 text-zinc-300">{tx.payerName || tx.payerEmail || "—"}</td>
-                    <td className="px-6 py-4 text-zinc-400">{tx.user?.name || tx.user?.email || "—"}</td>
-                    <td className="px-6 py-4 font-medium text-white">{fmt(tx.amount)}</td>
-                    <td className="px-6 py-4">
-                      <Badge variant={tx.status === "SUCCEEDED" ? "success" : tx.status === "PENDING" ? "warning" : tx.status === "FAILED" ? "error" : "default"}>
-                        {tx.status}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4">
-                      {tx.receiptSent ? <Badge variant="success">Envoyé</Badge> : <span className="text-zinc-600">—</span>}
-                    </td>
-                    <td className="px-6 py-4 text-zinc-600 text-xs font-mono">{tx.providerTransactionId?.slice(0, 20) || "—"}</td>
+          <>
+            {/* Mobile list */}
+            <div className="divide-y divide-white/[0.04] sm:hidden">
+              {transactions.map((tx) => (
+                <div key={tx.id} className="px-4 py-3.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-white">{fmt(tx.amount)}</p>
+                    <Badge variant={tx.status === "SUCCEEDED" ? "success" : tx.status === "PENDING" ? "warning" : tx.status === "FAILED" ? "error" : "default"}>
+                      {tx.status}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-1 truncate">{tx.payerName || tx.payerEmail || "—"} → {tx.user?.name || "—"}</p>
+                  <p className="text-xs text-zinc-600 mt-0.5">
+                    {new Date(tx.createdAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                </div>
+              ))}
+              {transactions.length === 0 && (
+                <div className="px-4 py-8 text-center text-zinc-500">Aucun paiement</div>
+              )}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/[0.06] text-left text-xs text-zinc-500">
+                    <th className="px-6 py-3 font-medium">Date</th>
+                    <th className="px-6 py-3 font-medium">Client</th>
+                    <th className="px-6 py-3 font-medium">Destinataire</th>
+                    <th className="px-6 py-3 font-medium">Montant</th>
+                    <th className="px-6 py-3 font-medium">Statut</th>
+                    <th className="px-6 py-3 font-medium">Reçu</th>
+                    <th className="px-6 py-3 font-medium">Stripe ID</th>
                   </tr>
-                ))}
-                {transactions.length === 0 && (
-                  <tr><td colSpan={7} className="px-6 py-8 text-center text-zinc-500">Aucun paiement</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {transactions.map((tx) => (
+                    <tr key={tx.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                      <td className="px-6 py-4 text-zinc-400">
+                        {new Date(tx.createdAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      </td>
+                      <td className="px-6 py-4 text-zinc-300">{tx.payerName || tx.payerEmail || "—"}</td>
+                      <td className="px-6 py-4 text-zinc-400">{tx.user?.name || tx.user?.email || "—"}</td>
+                      <td className="px-6 py-4 font-medium text-white">{fmt(tx.amount)}</td>
+                      <td className="px-6 py-4">
+                        <Badge variant={tx.status === "SUCCEEDED" ? "success" : tx.status === "PENDING" ? "warning" : tx.status === "FAILED" ? "error" : "default"}>
+                          {tx.status}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4">
+                        {tx.receiptSent ? <Badge variant="success">Envoyé</Badge> : <span className="text-zinc-600">—</span>}
+                      </td>
+                      <td className="px-6 py-4 text-zinc-600 text-xs font-mono">{tx.providerTransactionId?.slice(0, 20) || "—"}</td>
+                    </tr>
+                  ))}
+                  {transactions.length === 0 && (
+                    <tr><td colSpan={7} className="px-6 py-8 text-center text-zinc-500">Aucun paiement</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
     </div>

@@ -56,12 +56,12 @@ export default function TransactionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Transactions</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Transactions</h1>
           <p className="text-sm text-zinc-500 mt-1">Historique de tous vos mouvements</p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleExport}>
+        <Button variant="outline" size="sm" onClick={handleExport} className="self-start sm:self-auto">
           <Download className="mr-2 h-4 w-4" /> Export CSV
         </Button>
       </div>
@@ -74,38 +74,65 @@ export default function TransactionsPage() {
         ) : transactions.length === 0 ? (
           <div className="p-8 text-center text-zinc-400">Aucune transaction pour le moment</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/[0.06] text-left text-xs text-zinc-500">
-                  <th className="px-6 py-3 font-medium">Date</th>
-                  <th className="px-6 py-3 font-medium">Type</th>
-                  <th className="px-6 py-3 font-medium">Méthode</th>
-                  <th className="px-6 py-3 font-medium">De</th>
-                  <th className="px-6 py-3 font-medium">Montant</th>
-                  <th className="px-6 py-3 font-medium">Statut</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((tx) => (
-                  <tr key={tx.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
-                    <td className="px-6 py-4 text-zinc-300">
-                      {new Date(tx.createdAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
-                    </td>
-                    <td className="px-6 py-4 text-zinc-300">{tx.type === "PAYIN" ? "Paiement reçu" : tx.type === "PAYOUT" ? "Retrait" : tx.type}</td>
-                    <td className="px-6 py-4 text-zinc-400 text-xs">{methodLabels[tx.paymentMethod || ""] || "—"}</td>
-                    <td className="px-6 py-4 text-zinc-300">{tx.payerName || tx.payerEmail || "—"}</td>
-                    <td className="px-6 py-4 font-medium text-white">{tx.type === "PAYIN" ? "+" : "-"}{fmt(tx.amount)}</td>
-                    <td className="px-6 py-4">
-                      <Badge variant={statusMap[tx.status]?.variant || "default"}>
-                        {statusMap[tx.status]?.label || tx.status}
-                      </Badge>
-                    </td>
+          <>
+            {/* Mobile card list */}
+            <div className="divide-y divide-white/[0.04] sm:hidden">
+              {transactions.map((tx) => (
+                <div key={tx.id} className="flex items-center justify-between gap-3 px-4 py-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-white truncate">{tx.payerName || tx.payerEmail || (tx.type === "PAYOUT" ? "Retrait" : "Paiement")}</p>
+                    <p className="text-xs text-zinc-500 mt-0.5">
+                      {new Date(tx.createdAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
+                      {" · "}
+                      {methodLabels[tx.paymentMethod || ""] || tx.type}
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className={`text-sm font-semibold ${tx.type === "PAYIN" ? "text-emerald-400" : "text-white"}`}>
+                      {tx.type === "PAYIN" ? "+" : "-"}{fmt(tx.amount)}
+                    </p>
+                    <Badge variant={statusMap[tx.status]?.variant || "default"} className="mt-1">
+                      {statusMap[tx.status]?.label || tx.status}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/[0.06] text-left text-xs text-zinc-500">
+                    <th className="px-6 py-3 font-medium">Date</th>
+                    <th className="px-6 py-3 font-medium">Type</th>
+                    <th className="px-6 py-3 font-medium">Méthode</th>
+                    <th className="px-6 py-3 font-medium">De</th>
+                    <th className="px-6 py-3 font-medium">Montant</th>
+                    <th className="px-6 py-3 font-medium">Statut</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {transactions.map((tx) => (
+                    <tr key={tx.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                      <td className="px-6 py-4 text-zinc-300">
+                        {new Date(tx.createdAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      </td>
+                      <td className="px-6 py-4 text-zinc-300">{tx.type === "PAYIN" ? "Paiement reçu" : tx.type === "PAYOUT" ? "Retrait" : tx.type}</td>
+                      <td className="px-6 py-4 text-zinc-400 text-xs">{methodLabels[tx.paymentMethod || ""] || "—"}</td>
+                      <td className="px-6 py-4 text-zinc-300">{tx.payerName || tx.payerEmail || "—"}</td>
+                      <td className="px-6 py-4 font-medium text-white">{tx.type === "PAYIN" ? "+" : "-"}{fmt(tx.amount)}</td>
+                      <td className="px-6 py-4">
+                        <Badge variant={statusMap[tx.status]?.variant || "default"}>
+                          {statusMap[tx.status]?.label || tx.status}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
     </div>

@@ -32,11 +32,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#030308] px-4">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-[#030308] px-4 py-8">
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[400px] w-[500px] rounded-full bg-brand-500/[0.05] blur-[150px]" />
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[300px] w-[300px] sm:h-[400px] sm:w-[500px] rounded-full bg-brand-500/[0.05] blur-[120px] sm:blur-[150px]" />
       </div>
-      <Card className="relative w-full max-w-md p-8 border-white/[0.06]">
+      <Card className="relative w-full max-w-md p-6 sm:p-8 border-white/[0.06]">
         <div className="mb-8 text-center">
           <div className="mb-6">
             <Logo size="md" />

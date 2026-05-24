@@ -104,38 +104,58 @@ export default function PayoutsPage() {
       </Card>
 
       <Card className="overflow-hidden p-0">
-        <div className="px-6 pt-6">
+        <div className="px-4 sm:px-6 pt-4 sm:pt-6">
           <CardTitle>Historique</CardTitle>
         </div>
         {payouts.length === 0 ? (
           <div className="p-6 text-sm text-zinc-400">Aucun retrait</div>
         ) : (
-          <div className="overflow-x-auto mt-4">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-zinc-800 text-left text-xs text-zinc-500">
-                  <th className="px-6 py-3 font-medium">Date</th>
-                  <th className="px-6 py-3 font-medium">Montant</th>
-                  <th className="px-6 py-3 font-medium">Vers</th>
-                  <th className="px-6 py-3 font-medium">Statut</th>
-                </tr>
-              </thead>
-              <tbody>
-                {payouts.map((p) => (
-                  <tr key={p.id} className="border-b border-zinc-800/50">
-                    <td className="px-6 py-4 text-zinc-300">{new Date(p.createdAt).toLocaleDateString("fr-FR")}</td>
-                    <td className="px-6 py-4 font-medium text-white">{fmt(p.amount)}</td>
-                    <td className="px-6 py-4 text-zinc-300">{p.bankAccount.ibanMasked}</td>
-                    <td className="px-6 py-4">
-                      <Badge variant={p.status === "PAID" ? "success" : "info"}>
-                        {p.status === "PAID" ? "Payé" : "En cours"}
-                      </Badge>
-                    </td>
+          <>
+            {/* Mobile list */}
+            <div className="divide-y divide-white/[0.04] mt-3 sm:hidden">
+              {payouts.map((p) => (
+                <div key={p.id} className="flex items-center justify-between px-4 py-3.5">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-white">{fmt(p.amount)}</p>
+                    <p className="text-xs text-zinc-500 mt-0.5 truncate">
+                      {new Date(p.createdAt).toLocaleDateString("fr-FR")} · {p.bankAccount.ibanMasked}
+                    </p>
+                  </div>
+                  <Badge variant={p.status === "PAID" ? "success" : "info"} className="flex-shrink-0">
+                    {p.status === "PAID" ? "Payé" : "En cours"}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden sm:block overflow-x-auto mt-4">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/[0.06] text-left text-xs text-zinc-500">
+                    <th className="px-6 py-3 font-medium">Date</th>
+                    <th className="px-6 py-3 font-medium">Montant</th>
+                    <th className="px-6 py-3 font-medium">Vers</th>
+                    <th className="px-6 py-3 font-medium">Statut</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {payouts.map((p) => (
+                    <tr key={p.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                      <td className="px-6 py-4 text-zinc-300">{new Date(p.createdAt).toLocaleDateString("fr-FR")}</td>
+                      <td className="px-6 py-4 font-medium text-white">{fmt(p.amount)}</td>
+                      <td className="px-6 py-4 text-zinc-300">{p.bankAccount.ibanMasked}</td>
+                      <td className="px-6 py-4">
+                        <Badge variant={p.status === "PAID" ? "success" : "info"}>
+                          {p.status === "PAID" ? "Payé" : "En cours"}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
     </div>

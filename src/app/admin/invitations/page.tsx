@@ -69,20 +69,20 @@ export default function InvitationsPage() {
         <p className="text-sm text-zinc-500 mt-1">Gérer les invitations et autoriser de nouveaux utilisateurs</p>
       </div>
 
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <CardTitle className="mb-4 flex items-center gap-2"><Mail className="h-5 w-5 text-brand-400" /> Inviter un utilisateur</CardTitle>
-        <form onSubmit={handleInvite} className="flex flex-col sm:flex-row flex-wrap gap-3 sm:items-end">
+        <form onSubmit={handleInvite} className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
           <div className="flex-1 min-w-0 sm:min-w-[200px]">
             <Input id="invite-email" label="Email" type="email" placeholder="utilisateur@exemple.fr" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} required />
           </div>
           <div>
             <label className="block text-sm font-medium text-zinc-300 mb-2">Rôle</label>
-            <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as any)} className="h-11 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 text-sm text-white">
+            <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as any)} className="h-11 w-full sm:w-auto rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 text-sm text-white">
               <option value="USER">Utilisateur</option>
               <option value="ADMIN">Admin</option>
             </select>
           </div>
-          <Button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading} className="w-full sm:w-auto">
             <Plus className="h-4 w-4" /> {loading ? "Envoi..." : "Inviter"}
           </Button>
         </form>
@@ -91,8 +91,35 @@ export default function InvitationsPage() {
       </Card>
 
       <Card className="overflow-hidden p-0">
-        <div className="px-6 pt-6"><CardTitle>Invitations envoyées</CardTitle></div>
-        <div className="mt-4 overflow-x-auto">
+        <div className="px-4 sm:px-6 pt-4 sm:pt-6"><CardTitle>Invitations envoyées</CardTitle></div>
+
+        {/* Mobile list */}
+        <div className="divide-y divide-white/[0.04] mt-3 sm:hidden">
+          {invitations.map((inv) => (
+            <div key={inv.id} className="flex items-center justify-between gap-3 px-4 py-3.5">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-zinc-300 truncate">{inv.email}</p>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <Badge>{inv.role}</Badge>
+                  {inv.usedAt ? <Badge variant="success">Utilisée</Badge> :
+                   new Date(inv.expiresAt) < new Date() ? <Badge variant="error">Expirée</Badge> :
+                   <Badge variant="warning">En attente</Badge>}
+                </div>
+              </div>
+              {!inv.usedAt && (
+                <button onClick={() => handleDelete(inv.id)} className="flex-shrink-0 p-2 text-zinc-600 hover:text-red-400 transition-colors">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          ))}
+          {invitations.length === 0 && (
+            <div className="px-4 py-8 text-center text-zinc-500">Aucune invitation</div>
+          )}
+        </div>
+
+        {/* Desktop table */}
+        <div className="hidden sm:block mt-4 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/[0.06] text-left text-xs text-zinc-500">

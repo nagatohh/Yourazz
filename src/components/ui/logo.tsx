@@ -1,5 +1,3 @@
-"use client";
-
 interface LogoProps {
   size?: "sm" | "md" | "lg" | "xl";
   showTagline?: boolean;

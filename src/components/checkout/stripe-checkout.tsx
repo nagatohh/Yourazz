@@ -193,12 +193,12 @@ function CheckoutForm({ amount, transactionId, onSuccess, onError }: CheckoutFor
         }}
       />
 
-      <div className="relative my-4">
+      <div className="relative my-5">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-zinc-700" />
+          <div className="w-full border-t border-white/[0.06]" />
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-zinc-900 px-2 text-zinc-500">ou payer par carte</span>
+          <span className="bg-[#0a0a0f] px-3 text-zinc-500">ou payer par carte</span>
         </div>
       </div>
 

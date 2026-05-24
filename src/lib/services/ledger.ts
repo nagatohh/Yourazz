@@ -191,15 +191,14 @@ export async function createPayout(params: CreatePayoutParams) {
   const fees = params.fees ?? 0;
 
   return db.$transaction(async (tx) => {
-    const wallet = await tx.wallet.findUnique({ where: { id: params.walletId } });
-    if (!wallet || wallet.availableBalance < params.amount) {
-      throw new Error("INSUFFICIENT_BALANCE");
-    }
-
-    await tx.wallet.update({
-      where: { id: params.walletId },
+    const result = await tx.wallet.updateMany({
+      where: { id: params.walletId, availableBalance: { gte: params.amount } },
       data: { availableBalance: { decrement: params.amount } },
     });
+
+    if (result.count === 0) {
+      throw new Error("INSUFFICIENT_BALANCE");
+    }
 
     const payout = await tx.payout.create({
       data: {

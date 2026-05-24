@@ -42,40 +42,40 @@ export default function DashboardPage() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight">Tableau de bord</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Tableau de bord</h1>
         <p className="text-sm text-zinc-500 mt-1">Vue d&apos;ensemble de votre activité</p>
       </div>
 
       {/* Balance cards */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card className="border-brand-500/10 bg-gradient-to-br from-brand-500/[0.05] to-transparent">
-          <div className="flex items-center gap-4">
-            <div className="rounded-xl bg-brand-500/10 p-3">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+        <Card className="border-brand-500/10 bg-gradient-to-br from-brand-500/[0.05] to-transparent p-4 sm:p-6">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="rounded-xl bg-brand-500/10 p-2.5 sm:p-3 flex-shrink-0">
               <Wallet className="h-5 w-5 text-brand-400" />
             </div>
-            <div>
-              <p className="text-sm text-zinc-500">Solde disponible</p>
-              <p className="text-2xl font-bold text-white tracking-tight">{fmt(stats.availableBalance)}</p>
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-zinc-500">Solde disponible</p>
+              <p className="text-xl sm:text-2xl font-bold text-white tracking-tight truncate">{fmt(stats.availableBalance)}</p>
             </div>
           </div>
         </Card>
-        <Card>
-          <div className="flex items-center gap-4">
-            <div className="rounded-xl bg-amber-500/10 p-3">
+        <Card className="p-4 sm:p-6">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="rounded-xl bg-amber-500/10 p-2.5 sm:p-3 flex-shrink-0">
               <Clock className="h-5 w-5 text-amber-400" />
             </div>
-            <div>
-              <p className="text-sm text-zinc-500">En attente</p>
-              <p className="text-2xl font-bold text-white tracking-tight">{fmt(stats.pendingBalance)}</p>
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-zinc-500">En attente</p>
+              <p className="text-xl sm:text-2xl font-bold text-white tracking-tight truncate">{fmt(stats.pendingBalance)}</p>
             </div>
           </div>
         </Card>
       </div>
 
       {/* Stats grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard title="Aujourd'hui" value={fmt(stats.todayRevenue)} icon={DollarSign} />
         <StatCard title="Cette semaine" value={fmt(stats.weekRevenue)} icon={TrendingUp} />
         <StatCard title="Ce mois" value={fmt(stats.monthRevenue)} icon={CreditCard} />
@@ -83,9 +83,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Chart */}
-      <Card>
-        <CardTitle className="mb-6">Revenus de la semaine</CardTitle>
-        <div className="h-72">
+      <Card className="p-4 sm:p-6">
+        <CardTitle className="mb-4 sm:mb-6 text-base sm:text-lg">Revenus de la semaine</CardTitle>
+        <div className="h-48 sm:h-72">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={stats.weeklyData}>
               <defs>

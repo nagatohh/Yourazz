@@ -48,16 +48,18 @@ export default function PaymentLinkPage() {
           <CardTitle className="mb-2">Votre lien de paiement</CardTitle>
           <CardDescription className="mb-6">Partagez ce lien avec vos clients pour recevoir des paiements instantanément.</CardDescription>
 
-          <div className="flex items-center gap-3 rounded-lg border border-zinc-700 bg-zinc-800/50 p-3">
-            <code className="flex-1 truncate text-sm text-brand-400">{fullUrl}</code>
-            <Button variant="ghost" size="icon" onClick={copyLink}>
-              <Copy className="h-4 w-4" />
-            </Button>
-            <a href={fullUrl} target="_blank" rel="noopener noreferrer">
-              <Button variant="ghost" size="icon">
-                <ExternalLink className="h-4 w-4" />
+          <div className="flex items-center gap-2 sm:gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+            <code className="flex-1 min-w-0 truncate text-xs sm:text-sm text-brand-400">{fullUrl}</code>
+            <div className="flex flex-shrink-0 gap-1">
+              <Button variant="ghost" size="icon" onClick={copyLink}>
+                <Copy className="h-4 w-4" />
               </Button>
-            </a>
+              <a href={fullUrl} target="_blank" rel="noopener noreferrer">
+                <Button variant="ghost" size="icon">
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              </a>
+            </div>
           </div>
           {copied && <p className="mt-2 text-xs text-emerald-400">Copié !</p>}
 

@@ -42,14 +42,14 @@ export default function AdminPage() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight">Administration</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Administration</h1>
         <p className="text-sm text-zinc-500 mt-1">Vue d&apos;ensemble de la plateforme</p>
       </div>
 
       {stats && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           <StatCard title="Utilisateurs" value={String(stats.totalUsers)} icon={Users} />
           <StatCard title="Transactions" value={String(stats.totalTransactions)} icon={CreditCard} />
           <StatCard title="Volume total" value={fmt(stats.totalVolume)} icon={TrendingUp} />
@@ -58,8 +58,27 @@ export default function AdminPage() {
       )}
 
       <Card className="overflow-hidden p-0">
-        <div className="px-6 pt-6"><CardTitle>Utilisateurs</CardTitle></div>
-        <div className="mt-4 overflow-x-auto">
+        <div className="px-4 sm:px-6 pt-4 sm:pt-6"><CardTitle>Utilisateurs</CardTitle></div>
+
+        {/* Mobile list */}
+        <div className="divide-y divide-white/[0.04] mt-3 sm:hidden">
+          {users.map((u) => (
+            <div key={u.id} className="px-4 py-3.5">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium text-white truncate">{u.name || "—"}</p>
+                <Badge variant={u.role === "ADMIN_OWNER" || u.role === "ADMIN" ? "info" : "default"}>{u.role}</Badge>
+              </div>
+              <p className="text-xs text-zinc-500 mt-1 truncate">{u.email}</p>
+              <div className="flex items-center gap-3 mt-2">
+                {u.wallet && <span className="text-xs text-zinc-400">{fmt(u.wallet.availableBalance)}</span>}
+                {u.emailVerified ? <Badge variant="success">Vérifié</Badge> : <Badge variant="warning">Non vérifié</Badge>}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop table */}
+        <div className="hidden sm:block mt-4 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/[0.06] text-left text-xs text-zinc-500">

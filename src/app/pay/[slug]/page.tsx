@@ -82,7 +82,7 @@ export default function PublicPayPage() {
   const initials = (linkData.user.name || "Y").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#030308] px-4 py-8 noise">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-[#030308] px-4 py-6 sm:py-8 noise">
       {/* Background glow */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 h-[500px] w-[500px] rounded-full bg-brand-500/[0.04] blur-[120px]" />
@@ -90,11 +90,11 @@ export default function PublicPayPage() {
 
       <div className="relative w-full max-w-lg">
         {/* Profile Header */}
-        <div className="text-center mb-6">
-          <div className="mx-auto mb-4 h-20 w-20 rounded-full gradient-brand flex items-center justify-center shadow-xl shadow-brand-500/20 ring-4 ring-white/[0.05]">
-            <span className="text-2xl font-bold text-white">{initials}</span>
+        <div className="text-center mb-5 sm:mb-6">
+          <div className="mx-auto mb-3 sm:mb-4 h-16 w-16 sm:h-20 sm:w-20 rounded-full gradient-brand flex items-center justify-center shadow-xl shadow-brand-500/20 ring-4 ring-white/[0.05]">
+            <span className="text-xl sm:text-2xl font-bold text-white">{initials}</span>
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">{linkData.user.name}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">{linkData.user.name}</h1>
           {linkData.user.username && (
             <p className="text-sm text-zinc-500 mt-0.5">@{linkData.user.username}</p>
           )}
@@ -115,7 +115,7 @@ export default function PublicPayPage() {
         </div>
 
         {/* Payment Card */}
-        <Card className="p-8 border-white/[0.08]">
+        <Card className="p-5 sm:p-8 border-white/[0.08]">
           <div className="text-center mb-6">
             <p className="text-sm text-zinc-400">{linkData.label}</p>
             {linkData.fixedAmount && (
@@ -208,13 +208,13 @@ export default function PublicPayPage() {
         </Card>
 
         {/* Trust footer */}
-        <div className="mt-6 text-center">
-          <div className="flex items-center justify-center gap-6 text-[11px] text-zinc-600">
-            <span className="flex items-center gap-1.5"><Lock className="h-3 w-3" /> Chiffrement SSL</span>
-            <span className="flex items-center gap-1.5"><Shield className="h-3 w-3" /> PSD2 / SCA</span>
-            <span className="flex items-center gap-1.5"><CreditCard className="h-3 w-3" /> 3D Secure</span>
+        <div className="mt-5 sm:mt-6 text-center">
+          <div className="flex items-center justify-center gap-4 sm:gap-6 text-[10px] sm:text-[11px] text-zinc-600">
+            <span className="flex items-center gap-1"><Lock className="h-3 w-3" /> SSL</span>
+            <span className="flex items-center gap-1"><Shield className="h-3 w-3" /> PSD2</span>
+            <span className="flex items-center gap-1"><CreditCard className="h-3 w-3" /> 3D Secure</span>
           </div>
-          <p className="mt-3 text-[11px] text-zinc-700">Paiement sécurisé propulsé par <span className="text-zinc-500">Yourazz</span></p>
+          <p className="mt-2 sm:mt-3 text-[10px] sm:text-[11px] text-zinc-700">Paiement sécurisé propulsé par <span className="text-zinc-500">Yourazz</span></p>
         </div>
       </div>
     </div>

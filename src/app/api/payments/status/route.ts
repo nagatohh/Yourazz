@@ -9,10 +9,10 @@ export async function GET(req: Request) {
 
   const tx = await db.transaction.findUnique({
     where: { id: txId },
-    select: { id: true, status: true, amount: true, type: true, paymentMethod: true, createdAt: true },
+    select: { id: true, status: true, amount: true, createdAt: true },
   });
 
   if (!tx) return NextResponse.json({ error: "Transaction introuvable" }, { status: 404 });
 
-  return NextResponse.json({ transaction: tx });
+  return NextResponse.json({ status: tx.status, amount: tx.amount });
 }
