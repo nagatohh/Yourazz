@@ -17,6 +17,9 @@ export const metadata: Metadata = {
   title: "YouRazz Official — Plateforme de paiement premium",
   description: "Recevez des paiements instantanément. Solution fintech premium pour professionnels exigeants.",
   metadataBase: new URL("https://yourazz.xyz"),
+  icons: {
+    icon: "/favicon.svg",
+  },
   openGraph: {
     title: "YouRazz Official 公式",
     description: "Plateforme de paiement premium. Créez un lien, recevez de l'argent instantanément.",
