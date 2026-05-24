@@ -60,7 +60,7 @@ export class StripePaymentProvider implements PaymentProvider {
         ...req.metadata,
         idempotencyKey: req.idempotencyKey || "",
       },
-      expires_after: 1800,
+      expires_at: Math.floor(Date.now() / 1000) + 1800,
     } as any);
 
     return {
