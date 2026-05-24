@@ -53,6 +53,10 @@ export class MockPaymentProvider implements PaymentProvider {
   }
 
   async verifyWebhook(_headers: Record<string, string>, _body: string): Promise<WebhookVerification> {
+    if (process.env.NODE_ENV === "production") {
+      console.error("MockPaymentProvider used in production — rejecting webhook");
+      return { isValid: false };
+    }
     return { isValid: true, eventType: "payment.succeeded", eventId: uid("evt") };
   }
 }

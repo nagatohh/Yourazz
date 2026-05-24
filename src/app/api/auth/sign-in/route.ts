@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyPassword, createSession } from "@/lib/auth";
 import { signInSchema } from "@/lib/validators";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, rateLimitByAccount, recordFailedAttempt, clearFailedAttempts } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
   try {
@@ -11,8 +11,13 @@ export async function POST(req: Request) {
     if (!allowed) return NextResponse.json({ error: "Trop de tentatives, réessayez dans 1 minute" }, { status: 429 });
 
     const { email, password } = signInSchema.parse(await req.json());
+
+    const { locked } = rateLimitByAccount(email, 5, 15 * 60 * 1000);
+    if (locked) return NextResponse.json({ error: "Compte temporairement verrouillé. Réessayez dans 15 minutes." }, { status: 423 });
+
     const user = await db.user.findUnique({ where: { email } });
     if (!user || !(await verifyPassword(password, user.passwordHash))) {
+      recordFailedAttempt(email, 15 * 60 * 1000);
       await db.securityLog.create({
         data: { action: "LOGIN_FAILED", ipAddress: ip, metadata: { email } },
       });
@@ -22,6 +27,7 @@ export async function POST(req: Request) {
     if (user.status !== "ACTIVE")
       return NextResponse.json({ error: "Compte suspendu" }, { status: 403 });
 
+    clearFailedAttempts(email);
     await createSession(user.id, user.role);
     await db.securityLog.create({
       data: { userId: user.id, action: "LOGIN_SUCCESS", ipAddress: ip },

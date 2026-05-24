@@ -22,7 +22,7 @@ export async function createSession(userId: string, role?: string) {
     .sign(key());
 
   const c = await cookies();
-  c.set(COOKIE, token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: DURATION, path: "/" });
+  c.set(COOKIE, token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict", maxAge: DURATION, path: "/" });
   return token;
 }
 

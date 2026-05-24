@@ -137,19 +137,9 @@ export class PayPlugProvider implements PaymentProvider {
     }
 
     try {
-      // Vérification avec la clé publique PayPlug
       const publicKey = process.env.PAYPLUG_PUBLIC_KEY;
       if (!publicKey) {
-        // Fallback: en mode test, on accepte si la structure est correcte
-        const payload = JSON.parse(body);
-        if (payload.id && payload.object === "payment") {
-          return {
-            isValid: true,
-            eventType: payload.is_paid ? "payment.succeeded" : "payment.failed",
-            eventId: payload.id,
-            payload,
-          };
-        }
+        console.error("PAYPLUG_PUBLIC_KEY missing — rejecting webhook");
         return { isValid: false };
       }
 
