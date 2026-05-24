@@ -3,10 +3,13 @@ import Stripe from "stripe";
 import { db } from "@/lib/db";
 import { confirmPayin, failPayin, confirmPayout, failPayout } from "@/lib/services/ledger";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!);
+}
 
 export async function POST(req: Request) {
   try {
+    const stripe = getStripe();
     const body = await req.text();
     const sig = req.headers.get("stripe-signature");
     const secret = process.env.STRIPE_WEBHOOK_SECRET;
