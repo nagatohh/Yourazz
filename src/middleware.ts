@@ -24,7 +24,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/login", req.url));
 
   if (adminPaths.some((p) => pathname.startsWith(p)) && authed) {
-    if (userRole !== "ADMIN" && userRole !== "ADMIN_OWNER") {
+    if (userRole && userRole !== "ADMIN" && userRole !== "ADMIN_OWNER") {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
   }
