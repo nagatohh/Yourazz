@@ -48,10 +48,15 @@ export async function POST(req: Request) {
     const obj = event.data.object as any;
 
     switch (event.type) {
+      case "payment_intent.succeeded": {
+        await confirmPayin({ providerTxId: obj.id, provider: "stripe" });
+        break;
+      }
+
       case "checkout.session.completed": {
         const paymentIntent = obj.payment_intent as string;
         if (paymentIntent) {
-          await confirmPayin({ providerTxId: obj.id, provider: "stripe" });
+          await confirmPayin({ providerTxId: paymentIntent, provider: "stripe" });
         }
         break;
       }
