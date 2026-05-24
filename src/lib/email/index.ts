@@ -1,7 +1,11 @@
 import { Resend } from "resend";
 import { db } from "@/lib/db";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+function getResend() {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
+  return _resend;
+}
 const FROM = "Yourazz <noreply@yourazz.xyz>";
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://yourazz-git-main-yourazz-s-projects.vercel.app";
 
@@ -22,7 +26,7 @@ export async function sendVerificationEmail(email: string, token: string, name?:
   const url = `${BASE_URL}/verify-email?token=${token}`;
   const subject = "Confirmez votre adresse email – Yourazz";
 
-  const { data, error } = await resend.emails.send({
+  const { data, error } = await getResend().emails.send({
     from: FROM,
     to: email,
     subject,
@@ -37,7 +41,7 @@ export async function sendInvitationEmail(email: string, token: string, inviterN
   const url = `${BASE_URL}/register/invite?token=${token}`;
   const subject = "Vous êtes invité à rejoindre Yourazz";
 
-  const { data, error } = await resend.emails.send({
+  const { data, error } = await getResend().emails.send({
     from: FROM,
     to: email,
     subject,
@@ -59,7 +63,7 @@ export async function sendPaymentReceipt(email: string, receipt: {
 }) {
   const subject = `Reçu de paiement – #${receipt.transactionId.slice(-8).toUpperCase()}`;
 
-  const { data, error } = await resend.emails.send({
+  const { data, error } = await getResend().emails.send({
     from: FROM,
     to: email,
     subject,
