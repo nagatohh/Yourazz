@@ -12,7 +12,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variants: Record<Variant, string> = {
   default:
-    "bg-gradient-to-r from-brand-500 to-brand-600 text-white hover:from-brand-600 hover:to-brand-700 shadow-lg shadow-brand-500/20 hover:shadow-brand-500/40",
+    "bg-gradient-to-r from-brand-500 to-brand-600 text-white hover:from-brand-600 hover:to-brand-700 shadow-lg shadow-brand-500/25 hover:shadow-brand-500/40",
   secondary: "bg-white/5 text-white hover:bg-white/10 border border-white/10",
   outline: "border border-white/10 text-zinc-100 hover:bg-white/5 hover:border-white/20",
   ghost: "text-zinc-400 hover:bg-white/5 hover:text-white",

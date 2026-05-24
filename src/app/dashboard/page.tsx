@@ -81,8 +81,8 @@ export default function DashboardPage() {
             <AreaChart data={stats.weeklyData}>
               <defs>
                 <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#e11d48" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#e11d48" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#52525b", fontSize: 12 }} />
@@ -92,7 +92,7 @@ export default function DashboardPage() {
                 labelStyle={{ color: "#71717a" }}
                 formatter={(value: number) => [fmt(value), "Revenus"]}
               />
-              <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2} fill="url(#colorRevenue)" />
+              <Area type="monotone" dataKey="revenue" stroke="#e11d48" strokeWidth={2} fill="url(#colorRevenue)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>

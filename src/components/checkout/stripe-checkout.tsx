@@ -79,7 +79,7 @@ export function StripeCheckout(props: CheckoutProps) {
         appearance: {
           theme: "night",
           variables: {
-            colorPrimary: "#6366f1",
+            colorPrimary: "#e11d48",
             colorBackground: "#0a0a0f",
             colorText: "#ffffff",
             colorDanger: "#ef4444",
@@ -93,16 +93,16 @@ export function StripeCheckout(props: CheckoutProps) {
               backgroundColor: "rgba(255,255,255,0.03)",
             },
             ".Input:focus": {
-              border: "1px solid rgba(99,102,241,0.5)",
-              boxShadow: "0 0 0 3px rgba(99,102,241,0.1)",
+              border: "1px solid rgba(225,29,72,0.5)",
+              boxShadow: "0 0 0 3px rgba(225,29,72,0.1)",
             },
             ".Tab": {
               border: "1px solid rgba(255,255,255,0.06)",
               backgroundColor: "rgba(255,255,255,0.02)",
             },
             ".Tab--selected": {
-              border: "1px solid rgba(99,102,241,0.4)",
-              backgroundColor: "rgba(99,102,241,0.08)",
+              border: "1px solid rgba(225,29,72,0.4)",
+              backgroundColor: "rgba(225,29,72,0.08)",
             },
           },
         },
