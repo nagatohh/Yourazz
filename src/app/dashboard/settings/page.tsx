@@ -14,6 +14,9 @@ interface UserInfo {
 export default function SettingsPage() {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetch("/api/auth/me").then((r) => r.json()).then((d) => {
@@ -24,6 +27,25 @@ export default function SettingsPage() {
     });
   }, []);
 
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    setSaving(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error); return; }
+      setUser(data.user);
+      setSuccess("Modifications enregistrées");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch { setError("Erreur réseau"); } finally { setSaving(false); }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -33,11 +55,16 @@ export default function SettingsPage() {
 
       <Card>
         <CardTitle className="mb-4">Informations personnelles</CardTitle>
-        <div className="space-y-4 max-w-md">
-          <Input id="name" label="Nom" value={name} onChange={(e) => setName(e.target.value)} />
+        <form onSubmit={handleSave} className="space-y-4 max-w-md">
+          <Input id="name" label="Nom" value={name} onChange={(e) => setName(e.target.value)} required minLength={2} />
           <Input id="email" label="Email" value={user?.email || ""} disabled />
           <p className="text-xs text-zinc-500">L&apos;email ne peut pas être modifié pour le moment.</p>
-        </div>
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          {success && <p className="text-sm text-emerald-400">{success}</p>}
+          <Button type="submit" disabled={saving || name === user?.name}>
+            {saving ? "Enregistrement..." : "Enregistrer"}
+          </Button>
+        </form>
       </Card>
 
       <Card>
