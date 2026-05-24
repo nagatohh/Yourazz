@@ -2,7 +2,7 @@ import { Resend } from "resend";
 import { db } from "@/lib/db";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = "Yourazz <noreply@yourazz.com>";
+const FROM = "Yourazz <noreply@yourazz.xyz>";
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://yourazz-git-main-yourazz-s-projects.vercel.app";
 
 async function logEmail(toEmail: string, subject: string, template: string, result: { id?: string; error?: string }) {
