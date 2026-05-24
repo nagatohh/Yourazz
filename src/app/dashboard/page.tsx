@@ -21,7 +21,16 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
-    fetch("/api/stats").then((r) => r.json()).then(setStats);
+    fetch("/api/stats")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.error) {
+          setStats({ availableBalance: 0, pendingBalance: 0, todayRevenue: 0, weekRevenue: 0, monthRevenue: 0, totalPayments: 0, successRate: 0, weeklyData: [] });
+        } else {
+          setStats(d);
+        }
+      })
+      .catch(() => setStats({ availableBalance: 0, pendingBalance: 0, todayRevenue: 0, weekRevenue: 0, monthRevenue: 0, totalPayments: 0, successRate: 0, weeklyData: [] }));
   }, []);
 
   const fmt = (n: number) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(n / 100);
@@ -90,7 +99,7 @@ export default function DashboardPage() {
               <Tooltip
                 contentStyle={{ background: "#0f0f14", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "12px" }}
                 labelStyle={{ color: "#71717a" }}
-                formatter={(value: number) => [fmt(value), "Revenus"]}
+                formatter={(value: any) => [fmt(Number(value)), "Revenus"]}
               />
               <Area type="monotone" dataKey="revenue" stroke="#e11d48" strokeWidth={2} fill="url(#colorRevenue)" />
             </AreaChart>
