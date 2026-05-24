@@ -83,7 +83,7 @@ export async function POST(req: Request) {
                   userId: tx.userId,
                   action: "PAYMENT_REFUNDED",
                   target: tx.id,
-                  metadata: JSON.stringify({ amount: obj.amount_refunded }),
+                  metadata: { amount: obj.amount_refunded },
                 },
               });
             });
@@ -102,7 +102,7 @@ export async function POST(req: Request) {
                 userId: tx.userId,
                 action: "DISPUTE_CREATED",
                 target: tx.id,
-                metadata: JSON.stringify({ amount: obj.amount, reason: obj.reason }),
+                metadata: { amount: obj.amount, reason: obj.reason },
               },
             });
             await db.securityLog.create({
@@ -110,7 +110,7 @@ export async function POST(req: Request) {
                 userId: tx.userId,
                 action: "DISPUTE_OPENED",
                 severity: "CRITICAL",
-                metadata: JSON.stringify({ transactionId: tx.id, amount: obj.amount }),
+                metadata: { transactionId: tx.id, amount: obj.amount },
               },
             });
           }

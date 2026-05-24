@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -82,7 +83,7 @@ model Transaction {
   description           String?
   payerEmail            String?
   payerName             String?
-  metadata              String?
+  metadata              Json?
   failureReason         String?
   idempotencyKey        String?        @unique
   refundedAt            DateTime?
@@ -150,7 +151,7 @@ model OpenBankingSession {
   currency        String             @default("EUR")
   status          OpenBankingStatus  @default(INITIATED)
   redirectUrl     String?
-  callbackData    String?
+  callbackData    Json?
   payerEmail      String?
   payerName       String?
   errorMessage    String?
@@ -255,7 +256,7 @@ model WebhookEvent {
   provider    String
   eventType   String
   eventId     String    @unique
-  payload     String
+  payload     Json
   processed   Boolean   @default(false)
   processedAt DateTime?
   error       String?

@@ -90,13 +90,13 @@ export async function createPayin(params: CreatePayinParams) {
         userId: params.userId,
         action: "PAYIN_CREATED",
         target: transaction.id,
-        metadata: JSON.stringify({
+        metadata: {
           amount: params.amount,
           fees,
           netAmount,
           method: params.paymentMethod,
           status: params.status,
-        }),
+        },
       },
     });
 
@@ -140,11 +140,11 @@ export async function confirmPayin(params: ConfirmPayinParams) {
         userId: transaction.userId,
         action: "PAYIN_CONFIRMED",
         target: transaction.id,
-        metadata: JSON.stringify({
+        metadata: {
           amount: transaction.amount,
           netAmount: transaction.netAmount,
           provider: params.provider,
-        }),
+        },
       },
     });
 
@@ -179,7 +179,7 @@ export async function failPayin(params: FailPayinParams) {
         userId: transaction.userId,
         action: "PAYIN_FAILED",
         target: transaction.id,
-        metadata: JSON.stringify({ reason: params.reason }),
+        metadata: { reason: params.reason },
       },
     });
 
@@ -232,11 +232,11 @@ export async function createPayout(params: CreatePayoutParams) {
         userId: params.userId,
         action: "PAYOUT_CREATED",
         target: payout.id,
-        metadata: JSON.stringify({
+        metadata: {
           amount: params.amount,
           fees,
           bankAccountId: params.bankAccountId,
-        }),
+        },
       },
     });
 
@@ -306,7 +306,7 @@ export async function failPayout(providerPayoutId: string, reason: string) {
         userId: payout.userId,
         action: "PAYOUT_FAILED",
         target: payout.id,
-        metadata: JSON.stringify({ reason }),
+        metadata: { reason },
       },
     });
 

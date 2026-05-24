@@ -14,7 +14,7 @@ export async function POST(req: Request) {
 
     if (!verification.isValid) {
       await db.securityLog.create({
-        data: { action: "WEBHOOK_INVALID_SIGNATURE", severity: "WARNING", metadata: JSON.stringify({ provider: provider.name }) },
+        data: { action: "WEBHOOK_INVALID_SIGNATURE", severity: "WARNING", metadata: { provider: provider.name } },
       });
       return NextResponse.json({ error: "Signature invalide" }, { status: 401 });
     }
