@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { Logo } from "@/components/ui/logo";
 import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
@@ -52,12 +53,11 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-white/[0.06] bg-[#0a0a0f]">
-      <div className="flex h-16 items-center gap-3 border-b border-white/[0.06] px-6">
-        <div className="h-8 w-8 rounded-xl gradient-brand flex items-center justify-center shadow-lg shadow-brand-500/20">
-          <span className="text-sm font-bold text-white">Y</span>
-        </div>
-        <span className="text-lg font-semibold text-white tracking-tight">Yourazz</span>
+    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-white/[0.04] bg-[#050509]">
+      <div className="flex h-16 items-center border-b border-white/[0.04] px-5">
+        <Link href="/dashboard" className="flex items-center">
+          <Logo size="sm" />
+        </Link>
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4">

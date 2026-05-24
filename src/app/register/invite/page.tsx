@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Logo } from "@/components/ui/logo";
 
 function InviteForm() {
   const searchParams = useSearchParams();
@@ -35,8 +36,8 @@ function InviteForm() {
 
   if (!token) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#06060a] px-4 noise">
-        <Card className="max-w-md text-center p-8 border-white/[0.08]">
+      <div className="flex min-h-screen items-center justify-center bg-[#030308] px-4">
+        <Card className="max-w-md text-center p-8 border-white/[0.06]">
           <h1 className="text-xl font-bold text-white">Lien invalide</h1>
           <p className="mt-2 text-sm text-zinc-500">Ce lien d&apos;invitation est invalide ou manquant.</p>
         </Card>
@@ -45,17 +46,17 @@ function InviteForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#06060a] px-4 noise">
+    <div className="flex min-h-screen items-center justify-center bg-[#030308] px-4">
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[400px] w-[500px] rounded-full bg-brand-500/[0.06] blur-[120px]" />
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[400px] w-[500px] rounded-full bg-brand-500/[0.05] blur-[150px]" />
       </div>
-      <Card className="relative w-full max-w-md p-8 border-white/[0.08]">
+      <Card className="relative w-full max-w-md p-8 border-white/[0.06]">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 h-12 w-12 rounded-2xl gradient-brand flex items-center justify-center shadow-lg shadow-brand-500/20">
-            <span className="text-lg font-bold text-white">Y</span>
+          <div className="mb-5">
+            <Logo size="md" />
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Créer votre compte</h1>
-          <p className="mt-1.5 text-sm text-zinc-500">Vous avez été invité à rejoindre Yourazz</p>
+          <p className="mt-1.5 text-sm text-zinc-500">Vous avez été invité à rejoindre YouRazz</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -74,7 +75,7 @@ function InviteForm() {
 
 export default function InvitePage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#06060a]"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div>}>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#030308]"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div>}>
       <InviteForm />
     </Suspense>
   );

@@ -59,7 +59,7 @@ export async function POST(req: Request) {
       data: { userId: user.id, action: "USER_REGISTERED_VIA_INVITE", target: invitation.id, metadata: { email, role: invitation.role } },
     });
 
-    await createSession(user.id);
+    await createSession(user.id, invitation.role);
     return NextResponse.json({ user: { id: user.id, email, name }, needsVerification: true });
   } catch (e: any) {
     if (e?.name === "ZodError") return NextResponse.json({ error: "Données invalides" }, { status: 400 });

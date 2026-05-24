@@ -4,26 +4,34 @@ import { jwtVerify } from "jose";
 
 const protectedPaths = ["/dashboard", "/admin"];
 const authPaths = ["/login", "/register"];
+const adminPaths = ["/admin"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const token = req.cookies.get("session")?.value;
   let authed = false;
+  let userRole: string | null = null;
 
   if (token && process.env.JWT_SECRET) {
     try {
-      await jwtVerify(token, new TextEncoder().encode(process.env.JWT_SECRET));
+      const { payload } = await jwtVerify(token, new TextEncoder().encode(process.env.JWT_SECRET));
       authed = true;
+      userRole = (payload.role as string) || null;
     } catch {}
   }
 
   if (protectedPaths.some((p) => pathname.startsWith(p)) && !authed)
     return NextResponse.redirect(new URL("/login", req.url));
 
+  if (adminPaths.some((p) => pathname.startsWith(p)) && authed) {
+    if (userRole !== "ADMIN" && userRole !== "ADMIN_OWNER") {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+  }
+
   if (authPaths.some((p) => pathname.startsWith(p)) && authed)
     return NextResponse.redirect(new URL("/dashboard", req.url));
 
-  // Allow verify-email page even if authed (user needs to confirm)
   if (pathname.startsWith("/verify-email")) {
     const res = NextResponse.next();
     addSecurityHeaders(res);

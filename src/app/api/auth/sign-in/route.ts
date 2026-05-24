@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     if (user.status !== "ACTIVE")
       return NextResponse.json({ error: "Compte suspendu" }, { status: 403 });
 
-    await createSession(user.id);
+    await createSession(user.id, user.role);
     await db.securityLog.create({
       data: { userId: user.id, action: "LOGIN_SUCCESS", ipAddress: ip },
     });

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Logo } from "@/components/ui/logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -31,17 +32,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#06060a] px-4 noise">
+    <div className="flex min-h-screen items-center justify-center bg-[#030308] px-4">
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[400px] w-[500px] rounded-full bg-brand-500/[0.06] blur-[120px]" />
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[400px] w-[500px] rounded-full bg-brand-500/[0.05] blur-[150px]" />
       </div>
-      <Card className="relative w-full max-w-md p-8 border-white/[0.08]">
+      <Card className="relative w-full max-w-md p-8 border-white/[0.06]">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 h-12 w-12 rounded-2xl gradient-brand flex items-center justify-center shadow-lg shadow-brand-500/20">
-            <span className="text-lg font-bold text-white">Y</span>
+          <div className="mb-6">
+            <Logo size="md" />
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Connexion</h1>
-          <p className="mt-1.5 text-sm text-zinc-500">Accédez à votre tableau de bord</p>
+          <p className="mt-1.5 text-sm text-zinc-500">Accédez à votre espace privé</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -14,8 +14,8 @@ function key() {
 export const hashPassword = (p: string) => bcrypt.hash(p, 12);
 export const verifyPassword = (p: string, h: string) => bcrypt.compare(p, h);
 
-export async function createSession(userId: string) {
-  const token = await new SignJWT({ userId })
+export async function createSession(userId: string, role?: string) {
+  const token = await new SignJWT({ userId, role: role || "USER" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${DURATION}s`)
