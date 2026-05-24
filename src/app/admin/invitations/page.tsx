@@ -71,8 +71,8 @@ export default function InvitationsPage() {
 
       <Card className="p-6">
         <CardTitle className="mb-4 flex items-center gap-2"><Mail className="h-5 w-5 text-brand-400" /> Inviter un utilisateur</CardTitle>
-        <form onSubmit={handleInvite} className="flex flex-wrap gap-3 items-end">
-          <div className="flex-1 min-w-[200px]">
+        <form onSubmit={handleInvite} className="flex flex-col sm:flex-row flex-wrap gap-3 sm:items-end">
+          <div className="flex-1 min-w-0 sm:min-w-[200px]">
             <Input id="invite-email" label="Email" type="email" placeholder="utilisateur@exemple.fr" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} required />
           </div>
           <div>

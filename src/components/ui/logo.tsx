@@ -18,13 +18,9 @@ export function Logo({ size = "md", showTagline = false, className = "" }: LogoP
 
   return (
     <div className={`flex flex-col items-center ${className}`}>
-      <div className="flex items-center gap-1.5">
-        <div className="relative">
-          <span className={`${s.text} font-black tracking-tight text-white`}>
-            You<span className="gradient-text">Razz</span>
-          </span>
-        </div>
-      </div>
+      <span className={`${s.text} font-black tracking-tight text-white`}>
+        You<span className="gradient-text">Razz</span>
+      </span>
       {showTagline && (
         <span className={`${s.tagline} font-medium uppercase tracking-[0.3em] text-zinc-500 mt-1`}>
           Official 公式

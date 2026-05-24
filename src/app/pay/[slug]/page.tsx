@@ -61,7 +61,7 @@ export default function PublicPayPage() {
 
   if (notFound) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#06060a] px-4">
+      <div className="flex min-h-screen items-center justify-center bg-[#030308] px-4">
         <Card className="max-w-md text-center p-8 border-white/[0.08]">
           <CardTitle>Lien introuvable</CardTitle>
           <CardDescription className="mt-2">Ce lien de paiement n&apos;existe pas ou a été désactivé.</CardDescription>
@@ -72,7 +72,7 @@ export default function PublicPayPage() {
 
   if (!linkData) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#06060a]">
+      <div className="flex min-h-screen items-center justify-center bg-[#030308]">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
       </div>
     );
@@ -82,7 +82,7 @@ export default function PublicPayPage() {
   const initials = (linkData.user.name || "Y").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#06060a] px-4 py-8 noise">
+    <div className="flex min-h-screen items-center justify-center bg-[#030308] px-4 py-8 noise">
       {/* Background glow */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 h-[500px] w-[500px] rounded-full bg-brand-500/[0.04] blur-[120px]" />
