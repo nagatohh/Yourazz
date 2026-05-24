@@ -23,17 +23,25 @@ export async function middleware(req: NextRequest) {
   if (authPaths.some((p) => pathname.startsWith(p)) && authed)
     return NextResponse.redirect(new URL("/dashboard", req.url));
 
-  const res = NextResponse.next();
+  // Allow verify-email page even if authed (user needs to confirm)
+  if (pathname.startsWith("/verify-email")) {
+    const res = NextResponse.next();
+    addSecurityHeaders(res);
+    return res;
+  }
 
-  // Security headers
+  const res = NextResponse.next();
+  addSecurityHeaders(res);
+  return res;
+}
+
+function addSecurityHeaders(res: NextResponse) {
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("X-Frame-Options", "DENY");
   res.headers.set("X-XSS-Protection", "1; mode=block");
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   res.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   res.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-
-  return res;
 }
 
-export const config = { matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"] };
+export const config = { matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.well-known).*)"] };

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { db } from "@/lib/db";
 import { confirmPayin, failPayin, confirmPayout, failPayout } from "@/lib/services/ledger";
+import { sendPaymentReceipt } from "@/lib/email";
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -50,6 +51,19 @@ export async function POST(req: Request) {
     switch (event.type) {
       case "payment_intent.succeeded": {
         await confirmPayin({ providerTxId: obj.id, provider: "stripe" });
+        const tx = await db.transaction.findUnique({ where: { providerTransactionId: obj.id } });
+        if (tx?.payerEmail && !tx.receiptSent) {
+          await sendPaymentReceipt(tx.payerEmail, {
+            amount: tx.amount,
+            currency: tx.currency,
+            transactionId: tx.id,
+            payerName: tx.payerName || undefined,
+            description: tx.description || undefined,
+            paymentMethod: tx.paymentMethod || undefined,
+            date: tx.createdAt,
+          });
+          await db.transaction.update({ where: { id: tx.id }, data: { receiptSent: true } });
+        }
         break;
       }
 

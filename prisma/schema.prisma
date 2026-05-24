@@ -9,17 +9,18 @@ datasource db {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  email        String     @unique
-  passwordHash String
-  name         String?
-  username     String?    @unique
-  role         Role       @default(USER)
-  status       UserStatus @default(ACTIVE)
-  dailyVolume  Int        @default(0)
-  monthlyVolume Int       @default(0)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id            String     @id @default(cuid())
+  email         String     @unique
+  passwordHash  String
+  name          String?
+  username      String?    @unique
+  role          Role       @default(USER)
+  status        UserStatus @default(ACTIVE)
+  emailVerified Boolean    @default(false)
+  dailyVolume   Int        @default(0)
+  monthlyVolume Int        @default(0)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
   wallet              Wallet?
   transactions        Transaction[]
@@ -30,20 +31,70 @@ model User {
   securityLogs        SecurityLog[]
   auditLogs           AuditLog[]
   openBankingSessions OpenBankingSession[]
+  invitationsSent     Invitation[]       @relation("InvitedBy")
+  emailVerifications  EmailVerification[]
 
   @@index([email])
   @@index([username])
 }
 
 enum Role {
-  USER
+  ADMIN_OWNER
   ADMIN
+  USER
+  CUSTOMER
 }
 
 enum UserStatus {
   ACTIVE
   SUSPENDED
   BLOCKED
+}
+
+model Invitation {
+  id        String    @id @default(cuid())
+  email     String
+  role      Role      @default(USER)
+  tokenHash String    @unique
+  invitedBy String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  inviter User @relation("InvitedBy", fields: [invitedBy], references: [id])
+
+  @@index([email])
+  @@index([tokenHash])
+}
+
+model EmailVerification {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@index([userId])
+}
+
+model EmailLog {
+  id                String   @id @default(cuid())
+  toEmail           String
+  subject           String
+  template          String
+  status            String   @default("SENT")
+  providerMessageId String?
+  errorMessage      String?
+  metadata          Json?
+  createdAt         DateTime @default(now())
+
+  @@index([toEmail])
+  @@index([template])
+  @@index([createdAt])
 }
 
 model Wallet {
@@ -86,6 +137,7 @@ model Transaction {
   metadata              Json?
   failureReason         String?
   idempotencyKey        String?        @unique
+  receiptSent           Boolean        @default(false)
   refundedAt            DateTime?
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
@@ -142,22 +194,22 @@ model PaymentLink {
 }
 
 model OpenBankingSession {
-  id              String              @id @default(cuid())
-  userId          String?
-  transactionId   String?
-  providerSessionId String?          @unique
-  bankId          String?
-  amount          Int
-  currency        String             @default("EUR")
-  status          OpenBankingStatus  @default(INITIATED)
-  redirectUrl     String?
-  callbackData    Json?
-  payerEmail      String?
-  payerName       String?
-  errorMessage    String?
-  expiresAt       DateTime?
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  id                String             @id @default(cuid())
+  userId            String?
+  transactionId     String?
+  providerSessionId String?            @unique
+  bankId            String?
+  amount            Int
+  currency          String             @default("EUR")
+  status            OpenBankingStatus  @default(INITIATED)
+  redirectUrl       String?
+  callbackData      Json?
+  payerEmail        String?
+  payerName         String?
+  errorMessage      String?
+  expiresAt         DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
   user User? @relation(fields: [userId], references: [id])
 

@@ -7,7 +7,7 @@ export async function GET() {
   if (!s) return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
 
   const users = await db.user.findMany({
-    include: { wallet: { select: { availableBalance: true } } },
+    select: { id: true, email: true, name: true, role: true, status: true, emailVerified: true, createdAt: true, wallet: { select: { availableBalance: true } } },
     orderBy: { createdAt: "desc" },
     take: 100,
   });

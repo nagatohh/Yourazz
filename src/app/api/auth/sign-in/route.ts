@@ -26,7 +26,10 @@ export async function POST(req: Request) {
     await db.securityLog.create({
       data: { userId: user.id, action: "LOGIN_SUCCESS", ipAddress: ip },
     });
-    return NextResponse.json({ user: { id: user.id, email: user.email, name: user.name } });
+
+    return NextResponse.json({
+      user: { id: user.id, email: user.email, name: user.name, role: user.role, emailVerified: user.emailVerified },
+    });
   } catch (e: any) {
     if (e?.name === "ZodError") return NextResponse.json({ error: "Données invalides" }, { status: 400 });
     return NextResponse.json({ error: "Erreur de connexion" }, { status: 500 });
