@@ -12,13 +12,34 @@ interface UserRow { id: string; name: string; email: string; role: string; email
 export default function AdminPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<UserRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/api/admin/stats").then((r) => r.json()).then(setStats);
-    fetch("/api/admin/users").then((r) => r.json()).then((d) => setUsers(d.users || []));
+    Promise.all([
+      fetch("/api/admin/stats").then((r) => { if (!r.ok) throw new Error("Accès refusé"); return r.json(); }),
+      fetch("/api/admin/users").then((r) => { if (!r.ok) throw new Error("Accès refusé"); return r.json(); }),
+    ])
+      .then(([s, u]) => { setStats(s); setUsers(u.users || []); })
+      .catch((e) => setError(e.message || "Erreur de chargement"))
+      .finally(() => setLoading(false));
   }, []);
 
   const fmt = (n: number) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(n / 100);
+
+  if (loading) return (
+    <div className="flex h-64 items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+    </div>
+  );
+
+  if (error) return (
+    <div className="flex h-64 flex-col items-center justify-center gap-3">
+      <p className="text-red-400 font-medium">{error}</p>
+      <p className="text-sm text-zinc-500">Vérifiez que votre session est active et que vous avez les droits admin.</p>
+      <button onClick={() => window.location.reload()} className="mt-2 text-sm text-brand-400 hover:text-brand-300">Réessayer</button>
+    </div>
+  );
 
   return (
     <div className="space-y-8">

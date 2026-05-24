@@ -20,11 +20,13 @@ interface Transaction {
 export default function AdminPaymentsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetch("/api/admin/transactions?limit=100")
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error("Accès refusé"); return r.json(); })
       .then((d) => setTransactions(d.transactions || []))
+      .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
 
@@ -41,6 +43,11 @@ export default function AdminPaymentsPage() {
         {loading ? (
           <div className="flex h-32 items-center justify-center">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+          </div>
+        ) : error ? (
+          <div className="flex h-32 flex-col items-center justify-center gap-2">
+            <p className="text-red-400 text-sm">{error}</p>
+            <button onClick={() => window.location.reload()} className="text-xs text-brand-400 hover:text-brand-300">Réessayer</button>
           </div>
         ) : (
           <div className="overflow-x-auto">

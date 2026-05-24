@@ -14,11 +14,17 @@ export default function InvitationsPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"USER" | "ADMIN">("USER");
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [pageError, setPageError] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    fetch("/api/admin/invitations").then((r) => r.json()).then((d) => setInvitations(d.invitations || []));
+    fetch("/api/admin/invitations")
+      .then((r) => { if (!r.ok) throw new Error("Accès refusé"); return r.json(); })
+      .then((d) => setInvitations(d.invitations || []))
+      .catch((e) => setPageError(e.message))
+      .finally(() => setPageLoading(false));
   }, []);
 
   const handleInvite = async (e: React.FormEvent) => {
@@ -42,6 +48,19 @@ export default function InvitationsPage() {
     await fetch(`/api/admin/invitations/${id}`, { method: "DELETE" });
     setInvitations(invitations.filter((i) => i.id !== id));
   };
+
+  if (pageLoading) return (
+    <div className="flex h-64 items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+    </div>
+  );
+
+  if (pageError) return (
+    <div className="flex h-64 flex-col items-center justify-center gap-3">
+      <p className="text-red-400 font-medium">{pageError}</p>
+      <button onClick={() => window.location.reload()} className="text-sm text-brand-400 hover:text-brand-300">Réessayer</button>
+    </div>
+  );
 
   return (
     <div className="space-y-8">
