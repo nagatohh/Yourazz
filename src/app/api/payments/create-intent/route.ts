@@ -97,6 +97,7 @@ export async function POST(req: Request) {
   } catch (e: any) {
     if (e?.name === "ZodError") return NextResponse.json({ error: "Données invalides" }, { status: 400 });
     console.error("CREATE_INTENT:", e);
-    return NextResponse.json({ error: "Erreur paiement" }, { status: 500 });
+    const msg = e?.type === "StripeInvalidRequestError" ? e.message : "Erreur paiement";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
