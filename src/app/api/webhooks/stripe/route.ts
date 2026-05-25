@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { db } from "@/lib/db";
-import { confirmPayin, failPayin, confirmPayout, failPayout } from "@/lib/services/ledger";
-import { sendPaymentReceipt } from "@/lib/email";
+import { confirmPayin, failPayin } from "@/lib/services/ledger";
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -16,13 +15,14 @@ export async function POST(req: Request) {
     const secret = process.env.STRIPE_WEBHOOK_SECRET;
 
     if (!sig || !secret) {
+      console.error("STRIPE_WEBHOOK: Missing signature or secret");
       return NextResponse.json({ error: "Configuration manquante" }, { status: 500 });
     }
 
     let event: Stripe.Event;
     try {
       event = stripe.webhooks.constructEvent(body, sig, secret);
-    } catch {
+    } catch (err) {
       await db.securityLog.create({
         data: { action: "STRIPE_WEBHOOK_INVALID_SIGNATURE", severity: "WARNING" },
       });
@@ -35,6 +35,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ received: true, duplicate: true });
     }
 
+    // Upsert webhook event record
     await db.webhookEvent.upsert({
       where: { eventId: event.id },
       create: {
@@ -50,19 +51,27 @@ export async function POST(req: Request) {
 
     switch (event.type) {
       case "payment_intent.succeeded": {
-        await confirmPayin({ providerTxId: obj.id, provider: "stripe" });
-        const tx = await db.transaction.findUnique({ where: { providerTransactionId: obj.id } });
-        if (tx?.payerEmail && !tx.receiptSent) {
-          await sendPaymentReceipt(tx.payerEmail, {
-            amount: tx.amount,
-            currency: tx.currency,
-            transactionId: tx.id,
-            payerName: tx.payerName || undefined,
-            description: tx.description || undefined,
-            paymentMethod: tx.paymentMethod || undefined,
-            date: tx.createdAt,
-          });
-          await db.transaction.update({ where: { id: tx.id }, data: { receiptSent: true } });
+        const result = await confirmPayin({ providerTxId: obj.id, provider: "stripe" });
+        if (result) {
+          // Send receipt if needed
+          const tx = await db.transaction.findUnique({ where: { providerTransactionId: obj.id } });
+          if (tx?.payerEmail && !tx.receiptSent) {
+            try {
+              const { sendPaymentReceipt } = await import("@/lib/email");
+              await sendPaymentReceipt(tx.payerEmail, {
+                amount: tx.amount,
+                currency: tx.currency,
+                transactionId: tx.id,
+                payerName: tx.payerName || undefined,
+                description: tx.description || undefined,
+                paymentMethod: tx.paymentMethod || undefined,
+                date: tx.createdAt,
+              });
+              await db.transaction.update({ where: { id: tx.id }, data: { receiptSent: true } });
+            } catch (emailErr) {
+              console.error("RECEIPT_EMAIL_ERROR:", emailErr);
+            }
+          }
         }
         break;
       }
@@ -76,12 +85,15 @@ export async function POST(req: Request) {
       }
 
       case "checkout.session.expired": {
-        await failPayin({ providerTxId: obj.id, reason: "Session expirée" });
+        const pi = obj.payment_intent as string;
+        if (pi) {
+          await failPayin({ providerTxId: pi, reason: "Session expirée" });
+        }
         break;
       }
 
       case "payment_intent.payment_failed": {
-        const reason = obj.last_payment_error?.message || "Paiement refusé";
+        const reason = obj.last_payment_error?.message || "Paiement refuse";
         await failPayin({ providerTxId: obj.id, reason });
         break;
       }
@@ -119,20 +131,12 @@ export async function POST(req: Request) {
         if (txId) {
           const tx = await db.transaction.findUnique({ where: { providerTransactionId: txId } });
           if (tx) {
-            await db.auditLog.create({
-              data: {
-                userId: tx.userId,
-                action: "DISPUTE_CREATED",
-                target: tx.id,
-                metadata: { amount: obj.amount, reason: obj.reason },
-              },
-            });
             await db.securityLog.create({
               data: {
                 userId: tx.userId,
                 action: "DISPUTE_OPENED",
                 severity: "CRITICAL",
-                metadata: { transactionId: tx.id, amount: obj.amount },
+                metadata: { transactionId: tx.id, amount: obj.amount, reason: obj.reason },
               },
             });
           }
@@ -141,6 +145,7 @@ export async function POST(req: Request) {
       }
     }
 
+    // Mark as processed
     await db.webhookEvent.update({
       where: { eventId: event.id },
       data: { processed: true, processedAt: new Date() },

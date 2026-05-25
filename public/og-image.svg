@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#030308"/>
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF1744"/>
+      <stop offset="100%" stop-color="#9f1239"/>
+    </linearGradient>
+    <radialGradient id="bg" cx="50%" cy="40%">
+      <stop offset="0%" stop-color="#e11d48" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#030308" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <path d="M520 200L600 360L680 200" fill="none" stroke="url(#g)" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="600" y1="360" x2="600" y2="460" stroke="url(#g)" stroke-width="28" stroke-linecap="round"/>
+  <text x="600" y="550" font-family="system-ui, sans-serif" font-size="36" fill="#ffffff" text-anchor="middle" opacity="0.9">YouRazz — Paiement Premium</text>
+  <text x="600" y="590" font-family="system-ui, sans-serif" font-size="20" fill="#a1a1aa" text-anchor="middle">Recevez de l'argent instantanément</text>
+</svg>

@@ -18,6 +18,7 @@ import {
   Mail,
   Menu,
   X,
+  Activity,
 } from "lucide-react";
 
 const navItems = [
@@ -32,8 +33,10 @@ const navItems = [
 
 const adminItems = [
   { href: "/admin", label: "Vue d'ensemble", icon: Users },
-  { href: "/admin/invitations", label: "Invitations", icon: Mail },
   { href: "/admin/payments", label: "Paiements", icon: CreditCard },
+  { href: "/admin/invitations", label: "Invitations", icon: Mail },
+  { href: "/admin/security", label: "Securite", icon: Shield },
+  { href: "/admin/guardian", label: "Guardian", icon: Activity },
 ];
 
 export function Sidebar() {
@@ -64,8 +67,10 @@ export function Sidebar() {
   const isAdmin = role === "ADMIN" || role === "ADMIN_OWNER";
 
   const handleLogout = async () => {
-    await fetch("/api/auth/sign-out", { method: "POST" });
-    router.push("/login");
+    try {
+      await fetch("/api/auth/sign-out", { method: "POST" });
+    } catch {}
+    window.location.href = "/api/auth/force-logout";
   };
 
   const sidebarContent = (

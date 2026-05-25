@@ -22,21 +22,38 @@ export async function createSession(userId: string, role?: string) {
     .sign(key());
 
   const c = await cookies();
-  c.set(COOKIE, token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict", maxAge: DURATION, path: "/" });
+  c.set(COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: DURATION,
+    path: "/",
+  });
   return token;
 }
 
-export async function getSession(): Promise<{ userId: string } | null> {
+export async function getSession(): Promise<{ userId: string; role: string } | null> {
   const c = await cookies();
   const t = c.get(COOKIE)?.value;
   if (!t) return null;
   try {
     const { payload } = await jwtVerify(t, key());
-    return { userId: payload.userId as string };
-  } catch { return null; }
+    return {
+      userId: payload.userId as string,
+      role: (payload.role as string) || "USER",
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function destroySession() {
   const c = await cookies();
-  c.delete(COOKIE);
+  c.set(COOKIE, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 0,
+    path: "/",
+  });
 }

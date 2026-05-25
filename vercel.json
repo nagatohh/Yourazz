@@ -1,0 +1,22 @@
+{
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/cron/guardian/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/guardian/run-checks/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/guardian/repair/route.ts": {
+      "maxDuration": 30
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/guardian",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}

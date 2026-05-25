@@ -1,5 +1,13 @@
 import { db } from "@/lib/db";
-import type { TxType, TxStatus, PaymentMethod } from "@prisma/client";
+import type { PaymentMethod } from "@prisma/client";
+
+const PLATFORM_FEE_BPS = 150; // 1.5%
+
+function calculateFees(amount: number): number {
+  return Math.round((amount * PLATFORM_FEE_BPS) / 10000);
+}
+
+// ─── PAYIN ───────────────────────────────────────────────────────────
 
 interface CreatePayinParams {
   walletId: string;
@@ -16,37 +24,19 @@ interface CreatePayinParams {
   idempotencyKey?: string;
 }
 
-interface ConfirmPayinParams {
-  providerTxId: string;
-  provider: string;
-}
-
-interface FailPayinParams {
-  providerTxId: string;
-  reason: string;
-}
-
-interface CreatePayoutParams {
-  userId: string;
-  walletId: string;
-  bankAccountId: string;
-  amount: number;
-  fees?: number;
-  providerPayoutId: string;
-  provider: string;
-}
-
-const PLATFORM_FEE_BPS = 150; // 1.5%
-
-function calculateFees(amount: number): number {
-  return Math.round((amount * PLATFORM_FEE_BPS) / 10000);
-}
-
 export async function createPayin(params: CreatePayinParams) {
   const fees = params.fees ?? calculateFees(params.amount);
   const netAmount = params.amount - fees;
 
   return db.$transaction(async (tx) => {
+    // Idempotency check
+    if (params.idempotencyKey) {
+      const existing = await tx.transaction.findUnique({
+        where: { idempotencyKey: params.idempotencyKey },
+      });
+      if (existing) return existing;
+    }
+
     const transaction = await tx.transaction.create({
       data: {
         walletId: params.walletId,
@@ -66,17 +56,12 @@ export async function createPayin(params: CreatePayinParams) {
       },
     });
 
+    // PENDING → money goes to pendingBalance
+    // SUCCEEDED → money goes directly to availableBalance
     if (params.status === "SUCCEEDED") {
       await tx.wallet.update({
         where: { id: params.walletId },
         data: { availableBalance: { increment: netAmount } },
-      });
-      await tx.user.update({
-        where: { id: params.userId },
-        data: {
-          dailyVolume: { increment: params.amount },
-          monthlyVolume: { increment: params.amount },
-        },
       });
     } else {
       await tx.wallet.update({
@@ -90,18 +75,19 @@ export async function createPayin(params: CreatePayinParams) {
         userId: params.userId,
         action: "PAYIN_CREATED",
         target: transaction.id,
-        metadata: {
-          amount: params.amount,
-          fees,
-          netAmount,
-          method: params.paymentMethod,
-          status: params.status,
-        },
+        metadata: { amount: params.amount, fees, netAmount, method: params.paymentMethod, status: params.status },
       },
     });
 
     return transaction;
   });
+}
+
+// ─── CONFIRM PAYIN ───────────────────────────────────────────────────
+
+interface ConfirmPayinParams {
+  providerTxId: string;
+  provider: string;
 }
 
 export async function confirmPayin(params: ConfirmPayinParams) {
@@ -111,7 +97,11 @@ export async function confirmPayin(params: ConfirmPayinParams) {
     });
 
     if (!transaction) return null;
+
+    // Already succeeded — idempotent, skip
     if (transaction.status === "SUCCEEDED") return transaction;
+
+    // Can only confirm PENDING or AUTHORIZED transactions
     if (transaction.status !== "PENDING" && transaction.status !== "AUTHORIZED") return null;
 
     const updated = await tx.transaction.update({
@@ -119,19 +109,14 @@ export async function confirmPayin(params: ConfirmPayinParams) {
       data: { status: "SUCCEEDED" },
     });
 
+    // Move from pending to available
+    // pendingBalance was incremented by the original amount
+    // availableBalance gets the netAmount (after fees)
     await tx.wallet.update({
       where: { id: transaction.walletId },
       data: {
-        availableBalance: { increment: transaction.netAmount },
         pendingBalance: { decrement: transaction.amount },
-      },
-    });
-
-    await tx.user.update({
-      where: { id: transaction.userId },
-      data: {
-        dailyVolume: { increment: transaction.amount },
-        monthlyVolume: { increment: transaction.amount },
+        availableBalance: { increment: transaction.netAmount },
       },
     });
 
@@ -152,6 +137,13 @@ export async function confirmPayin(params: ConfirmPayinParams) {
   });
 }
 
+// ─── FAIL PAYIN ──────────────────────────────────────────────────────
+
+interface FailPayinParams {
+  providerTxId: string;
+  reason: string;
+}
+
 export async function failPayin(params: FailPayinParams) {
   return db.$transaction(async (tx) => {
     const transaction = await tx.transaction.findUnique({
@@ -167,12 +159,11 @@ export async function failPayin(params: FailPayinParams) {
       data: { status: "FAILED", failureReason: params.reason },
     });
 
-    if (transaction.status === "PENDING") {
-      await tx.wallet.update({
-        where: { id: transaction.walletId },
-        data: { pendingBalance: { decrement: transaction.amount } },
-      });
-    }
+    // Remove from pending balance
+    await tx.wallet.update({
+      where: { id: transaction.walletId },
+      data: { pendingBalance: { decrement: transaction.amount } },
+    });
 
     await tx.auditLog.create({
       data: {
@@ -187,10 +178,23 @@ export async function failPayin(params: FailPayinParams) {
   });
 }
 
+// ─── PAYOUT ──────────────────────────────────────────────────────────
+
+interface CreatePayoutParams {
+  userId: string;
+  walletId: string;
+  bankAccountId: string;
+  amount: number;
+  fees?: number;
+  providerPayoutId: string;
+  provider: string;
+}
+
 export async function createPayout(params: CreatePayoutParams) {
   const fees = params.fees ?? 0;
 
   return db.$transaction(async (tx) => {
+    // Atomic check: only debit if sufficient balance
     const result = await tx.wallet.updateMany({
       where: { id: params.walletId, availableBalance: { gte: params.amount } },
       data: { availableBalance: { decrement: params.amount } },
@@ -211,7 +215,7 @@ export async function createPayout(params: CreatePayoutParams) {
       },
     });
 
-    const transaction = await tx.transaction.create({
+    await tx.transaction.create({
       data: {
         walletId: params.walletId,
         userId: params.userId,
@@ -222,7 +226,7 @@ export async function createPayout(params: CreatePayoutParams) {
         netAmount: params.amount - fees,
         providerTransactionId: params.providerPayoutId,
         provider: params.provider,
-        description: `Retrait vers compte bancaire`,
+        description: "Retrait vers compte bancaire",
       },
     });
 
@@ -231,42 +235,29 @@ export async function createPayout(params: CreatePayoutParams) {
         userId: params.userId,
         action: "PAYOUT_CREATED",
         target: payout.id,
-        metadata: {
-          amount: params.amount,
-          fees,
-          bankAccountId: params.bankAccountId,
-        },
+        metadata: { amount: params.amount, fees, bankAccountId: params.bankAccountId },
       },
     });
 
-    return { payout, transaction };
+    return payout;
   });
 }
 
+// ─── CONFIRM / FAIL PAYOUT ───────────────────────────────────────────
+
 export async function confirmPayout(providerPayoutId: string) {
   return db.$transaction(async (tx) => {
-    const payout = await tx.payout.findUnique({
-      where: { providerPayoutId },
-    });
-
+    const payout = await tx.payout.findUnique({ where: { providerPayoutId } });
     if (!payout || payout.status === "PAID") return payout;
 
-    await tx.payout.update({
-      where: { id: payout.id },
-      data: { status: "PAID" },
-    });
-
+    await tx.payout.update({ where: { id: payout.id }, data: { status: "PAID" } });
     await tx.transaction.updateMany({
       where: { providerTransactionId: providerPayoutId },
       data: { status: "SUCCEEDED" },
     });
 
     await tx.auditLog.create({
-      data: {
-        userId: payout.userId,
-        action: "PAYOUT_CONFIRMED",
-        target: payout.id,
-      },
+      data: { userId: payout.userId, action: "PAYOUT_CONFIRMED", target: payout.id },
     });
 
     return payout;
@@ -275,23 +266,19 @@ export async function confirmPayout(providerPayoutId: string) {
 
 export async function failPayout(providerPayoutId: string, reason: string) {
   return db.$transaction(async (tx) => {
-    const payout = await tx.payout.findUnique({
-      where: { providerPayoutId },
-    });
-
+    const payout = await tx.payout.findUnique({ where: { providerPayoutId } });
     if (!payout || payout.status === "FAILED") return payout;
 
     await tx.payout.update({
       where: { id: payout.id },
       data: { status: "FAILED", failureReason: reason },
     });
-
     await tx.transaction.updateMany({
       where: { providerTransactionId: providerPayoutId },
       data: { status: "FAILED", failureReason: reason },
     });
 
-    // Refund the wallet
+    // Refund wallet
     const wallet = await tx.wallet.findFirst({ where: { userId: payout.userId } });
     if (wallet) {
       await tx.wallet.update({
@@ -301,12 +288,7 @@ export async function failPayout(providerPayoutId: string, reason: string) {
     }
 
     await tx.auditLog.create({
-      data: {
-        userId: payout.userId,
-        action: "PAYOUT_FAILED",
-        target: payout.id,
-        metadata: { reason },
-      },
+      data: { userId: payout.userId, action: "PAYOUT_FAILED", target: payout.id, metadata: { reason } },
     });
 
     return payout;

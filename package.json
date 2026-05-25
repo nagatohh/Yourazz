@@ -8,7 +8,11 @@
     "start": "next start",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "guardian:check": "npx tsx scripts/guardian-check.ts",
+    "guardian:repair": "npx tsx scripts/guardian-repair-safe.ts",
+    "guardian:wallets": "npx tsx scripts/wallet-consistency-check.ts",
+    "guardian:webhooks": "npx tsx scripts/webhook-retry.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.2.0",

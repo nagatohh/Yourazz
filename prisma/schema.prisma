@@ -349,3 +349,91 @@ model AuditLog {
   @@index([userId])
   @@index([createdAt])
 }
+
+// ─── GUARDIAN AI ─────────────────────────────────────────────────────────────
+
+model GuardianCheck {
+  id        String           @id @default(cuid())
+  type      String
+  status    GuardianStatus   @default(HEALTHY)
+  severity  GuardianSeverity @default(INFO)
+  message   String
+  details   Json?
+  duration  Int?
+  createdAt DateTime         @default(now())
+
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model GuardianIssue {
+  id             String           @id @default(cuid())
+  type           String
+  severity       GuardianSeverity @default(WARNING)
+  status         GuardianIssueStatus @default(OPEN)
+  title          String
+  description    String?
+  source         String
+  metadata       Json?
+  autoRepairable Boolean          @default(false)
+  repairedAt     DateTime?
+  createdAt      DateTime         @default(now())
+
+  repairs GuardianRepair[]
+
+  @@index([type])
+  @@index([status])
+  @@index([severity])
+  @@index([createdAt])
+}
+
+model GuardianRepair {
+  id        String   @id @default(cuid())
+  issueId   String
+  action    String
+  success   Boolean  @default(false)
+  message   String?
+  details   Json?
+  createdAt DateTime @default(now())
+
+  issue GuardianIssue @relation(fields: [issueId], references: [id])
+
+  @@index([issueId])
+  @@index([createdAt])
+}
+
+model GuardianLog {
+  id        String   @id @default(cuid())
+  level     String   @default("INFO")
+  source    String
+  message   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([level])
+  @@index([source])
+  @@index([createdAt])
+}
+
+enum GuardianStatus {
+  HEALTHY
+  DEGRADED
+  BROKEN
+  REPAIRED
+  NEEDS_MANUAL_ACTION
+}
+
+enum GuardianSeverity {
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+enum GuardianIssueStatus {
+  OPEN
+  REPAIRED
+  IGNORED
+  MANUAL_REQUIRED
+}

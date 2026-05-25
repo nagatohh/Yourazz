@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/fetch";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,7 @@ export default function SettingsPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/api/auth/me").then((r) => r.json()).then((d) => {
+    apiFetch("/api/auth/me").then((r) => r.json()).then((d) => {
       if (d.user) {
         setUser(d.user);
         setName(d.user.name || "");
@@ -33,7 +34,7 @@ export default function SettingsPage() {
     setSuccess("");
     setSaving(true);
     try {
-      const res = await fetch("/api/settings", {
+      const res = await apiFetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),

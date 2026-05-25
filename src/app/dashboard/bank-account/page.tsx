@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/fetch";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +28,7 @@ export default function BankAccountPage() {
   const [error, setError] = useState("");
 
   const loadAccounts = () => {
-    fetch("/api/bank-accounts").then((r) => r.json()).then((d) => setAccounts(d.accounts || []));
+    apiFetch("/api/bank-accounts").then((r) => r.json()).then((d) => setAccounts(d.accounts || []));
   };
 
   useEffect(() => { loadAccounts(); }, []);
@@ -37,7 +38,7 @@ export default function BankAccountPage() {
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/bank-accounts", {
+      const res = await apiFetch("/api/bank-accounts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ iban: iban.replace(/\s/g, ""), bic, holderName }),

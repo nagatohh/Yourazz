@@ -26,7 +26,7 @@ export async function POST(req: Request) {
       amount: v.amount,
     });
 
-    const { payout } = await createPayout({
+    const payout = await createPayout({
       userId: user.id,
       walletId: user.wallet.id,
       bankAccountId: bank.id,

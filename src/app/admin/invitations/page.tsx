@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/fetch";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ export default function InvitationsPage() {
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    fetch("/api/admin/invitations")
+    apiFetch("/api/admin/invitations")
       .then((r) => { if (!r.ok) throw new Error("Accès refusé"); return r.json(); })
       .then((d) => setInvitations(d.invitations || []))
       .catch((e) => setPageError(e.message))
@@ -40,7 +41,7 @@ export default function InvitationsPage() {
       if (!res.ok) { setError(data.error); return; }
       setSuccess(`Invitation envoyée à ${inviteEmail}`);
       setInviteEmail("");
-      fetch("/api/admin/invitations").then((r) => r.json()).then((d) => setInvitations(d.invitations || []));
+      apiFetch("/api/admin/invitations").then((r) => r.json()).then((d) => setInvitations(d.invitations || []));
     } catch { setError("Erreur réseau"); } finally { setLoading(false); }
   };
 
