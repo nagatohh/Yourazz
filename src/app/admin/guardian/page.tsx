@@ -1,5 +1,6 @@
 "use client";
 
+/* Guardian AI - monitoring page */
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/fetch";
 import { Card, CardTitle } from "@/components/ui/card";
