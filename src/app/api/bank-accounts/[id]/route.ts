@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getPaymentProvider } from "@/lib/payments";
+import { deleteExternalBankAccount } from "@/lib/services/stripe-connect";
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -20,11 +20,32 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Impossible de supprimer : retrait en cours" }, { status: 400 });
     }
 
+    const user = await db.user.findUnique({ where: { id: s.userId } });
+
+    if (user?.stripeAccountId && account.providerBankAccountId) {
+      try {
+        await deleteExternalBankAccount({
+          stripeAccountId: user.stripeAccountId,
+          externalAccountId: account.providerBankAccountId,
+        });
+      } catch (e: any) {
+        console.error("STRIPE_DELETE_BANK:", e?.message);
+      }
+    }
+
     await db.bankAccount.delete({ where: { id } });
+
+    await db.auditLog.create({
+      data: {
+        userId: s.userId,
+        action: "BANK_ACCOUNT_DELETED",
+        target: id,
+      },
+    });
 
     return NextResponse.json({ success: true });
   } catch (e: any) {
-    console.error("BANK_ACCOUNT_DELETE:", e);
+    console.error("BANK_ACCOUNT_DELETE:", e?.message);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }

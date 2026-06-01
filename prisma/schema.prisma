@@ -9,18 +9,21 @@ datasource db {
 }
 
 model User {
-  id            String     @id @default(cuid())
-  email         String     @unique
-  passwordHash  String
-  name          String?
-  username      String?    @unique
-  role          Role       @default(USER)
-  status        UserStatus @default(ACTIVE)
-  emailVerified Boolean    @default(false)
-  dailyVolume   Int        @default(0)
-  monthlyVolume Int        @default(0)
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  id               String     @id @default(cuid())
+  email            String     @unique
+  passwordHash     String
+  name             String?
+  username         String?    @unique
+  role             Role       @default(USER)
+  status           UserStatus @default(ACTIVE)
+  emailVerified    Boolean    @default(false)
+  stripeAccountId  String?    @unique
+  stripeOnboarded  Boolean    @default(false)
+  payoutsEnabled   Boolean    @default(false)
+  dailyVolume      Int        @default(0)
+  monthlyVolume    Int        @default(0)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
   wallet              Wallet?
   transactions        Transaction[]
@@ -233,9 +236,11 @@ model Payout {
   bankAccountId    String
   amount           Int
   fees             Int          @default(0)
+  netAmount        Int          @default(0)
   currency         String       @default("EUR")
   status           PayoutStatus @default(PENDING)
   providerPayoutId String?      @unique
+  idempotencyKey   String?      @unique
   estimatedArrival DateTime?
   failureReason    String?
   createdAt        DateTime     @default(now())
@@ -260,15 +265,17 @@ model BankAccount {
   id                    String     @id @default(cuid())
   userId                String
   ibanMasked            String
-  ibanEncrypted         String
+  ibanEncrypted         String?
   bic                   String?
   holderName            String
   bankName              String?
   country               String     @default("FR")
+  currency              String     @default("EUR")
   status                BankStatus @default(PENDING)
   isDefault             Boolean    @default(false)
   providerBankAccountId String?    @unique
   createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @default(now()) @updatedAt
 
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   payouts Payout[]

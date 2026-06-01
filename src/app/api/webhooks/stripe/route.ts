@@ -143,6 +143,90 @@ export async function POST(req: Request) {
         }
         break;
       }
+
+      case "payout.paid": {
+        const payout = await db.payout.findUnique({ where: { providerPayoutId: obj.id } });
+        if (payout && payout.status !== "PAID") {
+          await db.payout.update({
+            where: { id: payout.id },
+            data: { status: "PAID" },
+          });
+          await db.auditLog.create({
+            data: { userId: payout.userId, action: "PAYOUT_PAID", target: payout.id },
+          });
+        }
+        break;
+      }
+
+      case "payout.failed": {
+        const payout = await db.payout.findUnique({ where: { providerPayoutId: obj.id } });
+        if (payout && payout.status !== "FAILED") {
+          await db.payout.update({
+            where: { id: payout.id },
+            data: { status: "FAILED", failureReason: obj.failure_message || obj.failure_code || "Échec du retrait" },
+          });
+          await db.auditLog.create({
+            data: {
+              userId: payout.userId,
+              action: "PAYOUT_FAILED",
+              target: payout.id,
+              metadata: { reason: obj.failure_message, code: obj.failure_code },
+            },
+          });
+        }
+        break;
+      }
+
+      case "payout.canceled": {
+        const payout = await db.payout.findUnique({ where: { providerPayoutId: obj.id } });
+        if (payout && payout.status !== "CANCELLED") {
+          await db.payout.update({
+            where: { id: payout.id },
+            data: { status: "CANCELLED" },
+          });
+          await db.auditLog.create({
+            data: { userId: payout.userId, action: "PAYOUT_CANCELLED", target: payout.id },
+          });
+        }
+        break;
+      }
+
+      case "account.updated": {
+        const accountId = obj.id as string;
+        const user = await db.user.findFirst({ where: { stripeAccountId: accountId } });
+        if (user) {
+          await db.user.update({
+            where: { id: user.id },
+            data: {
+              payoutsEnabled: obj.payouts_enabled || false,
+              stripeOnboarded: obj.details_submitted || false,
+            },
+          });
+        }
+        break;
+      }
+
+      case "account.external_account.created":
+      case "account.external_account.updated": {
+        const bankAccountStripeId = obj.id as string;
+        const bankAccount = await db.bankAccount.findFirst({
+          where: { providerBankAccountId: bankAccountStripeId },
+        });
+        if (bankAccount) {
+          const newStatus = obj.status === "verified" ? "VERIFIED" : obj.status === "errored" ? "REJECTED" : "PENDING";
+          await db.bankAccount.update({
+            where: { id: bankAccount.id },
+            data: { status: newStatus as any, bankName: obj.bank_name || bankAccount.bankName },
+          });
+        }
+        break;
+      }
+
+      case "account.external_account.deleted": {
+        const deletedId = obj.id as string;
+        await db.bankAccount.deleteMany({ where: { providerBankAccountId: deletedId } });
+        break;
+      }
     }
 
     // Mark as processed

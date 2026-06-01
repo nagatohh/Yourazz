@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/fetch";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Banknote, Building2, AlertCircle, CheckCircle2, Clock, ArrowRight } from "lucide-react";
 
@@ -21,22 +20,28 @@ interface Payout {
   id: string;
   amount: number;
   fees: number;
+  netAmount: number;
+  currency: string;
   status: string;
   createdAt: string;
+  estimatedArrival: string | null;
   bankAccount: { ibanMasked: string; holderName: string };
 }
 
 interface WalletInfo {
   availableBalance: number;
   pendingBalance: number;
+  currency: string;
+  stripeConnected: boolean;
+  payoutsEnabled: boolean;
 }
 
 const statusConfig: Record<string, { label: string; variant: "success" | "warning" | "error" | "info"; icon: typeof CheckCircle2 }> = {
   PENDING: { label: "En attente", variant: "warning", icon: Clock },
   PROCESSING: { label: "En cours", variant: "info", icon: Clock },
-  PAID: { label: "Paye", variant: "success", icon: CheckCircle2 },
-  FAILED: { label: "Echoue", variant: "error", icon: AlertCircle },
-  CANCELLED: { label: "Annule", variant: "error", icon: AlertCircle },
+  PAID: { label: "Payé", variant: "success", icon: CheckCircle2 },
+  FAILED: { label: "Échoué", variant: "error", icon: AlertCircle },
+  CANCELLED: { label: "Annulé", variant: "error", icon: AlertCircle },
 };
 
 export default function PayoutsPage() {
@@ -50,20 +55,20 @@ export default function PayoutsPage() {
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    apiFetch("/api/payouts/history").then((r) => r.json()).then((d) => setPayouts(d.payouts || []));
-    apiFetch("/api/bank-accounts").then((r) => r.json()).then((d) => {
-      setBanks(d.accounts || []);
-      if (d.accounts?.length) setSelectedBank(d.accounts[0].id);
-    });
-    apiFetch("/api/wallet").then((r) => r.json()).then((d) => {
-      if (!d.error && d.wallet) setWallet(d.wallet);
-    });
+    loadData();
   }, []);
 
-  const refreshData = () => {
+  const loadData = () => {
     apiFetch("/api/payouts/history").then((r) => r.json()).then((d) => setPayouts(d.payouts || []));
+    apiFetch("/api/bank-accounts").then((r) => r.json()).then((d) => {
+      const verified = (d.accounts || []).filter((a: BankAccount) => a.status === "VERIFIED");
+      setBanks(verified);
+      const def = verified.find((a: BankAccount) => a.isDefault);
+      if (def) setSelectedBank(def.id);
+      else if (verified.length) setSelectedBank(verified[0].id);
+    });
     apiFetch("/api/wallet").then((r) => r.json()).then((d) => {
-      if (!d.error && d.wallet) setWallet(d.wallet);
+      if (!d.error) setWallet(d);
     });
   };
 
@@ -72,25 +77,34 @@ export default function PayoutsPage() {
     setError("");
     setSuccess("");
     setLoading(true);
+
     try {
       const amountCents = Math.round(parseFloat(amount) * 100);
-      if (amountCents < 500) {
+      if (isNaN(amountCents) || amountCents < 500) {
         setError("Montant minimum : 5,00 EUR");
         return;
       }
+      if (!selectedBank) {
+        setError("Sélectionnez un compte bancaire");
+        return;
+      }
+
       const res = await apiFetch("/api/payouts/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount: amountCents, bankAccountId: selectedBank }),
       });
+
       const data = await res.json();
+
       if (!res.ok) {
         setError(data.error || "Erreur lors du retrait");
         return;
       }
-      setSuccess("Retrait initie avec succes. Vous recevrez les fonds sous 2-3 jours ouvrés.");
+
+      setSuccess("Retrait initié avec succès. Vous recevrez les fonds sous 2-3 jours ouvrés.");
       setAmount("");
-      refreshData();
+      loadData();
     } catch {
       setError("Erreur réseau");
     } finally {
@@ -99,7 +113,7 @@ export default function PayoutsPage() {
   };
 
   const handleMaxAmount = () => {
-    if (wallet) {
+    if (wallet && wallet.availableBalance > 0) {
       setAmount((wallet.availableBalance / 100).toFixed(2));
     }
   };
@@ -133,7 +147,7 @@ export default function PayoutsPage() {
           </p>
         </Card>
         <Card className="p-4">
-          <p className="text-xs text-zinc-500">Total retire</p>
+          <p className="text-xs text-zinc-500">Total retiré</p>
           <p className="text-xl font-bold text-emerald-400 mt-1">{fmt(totalPaid)}</p>
         </Card>
       </div>
@@ -286,9 +300,7 @@ export default function PayoutsPage() {
                         </p>
                       </div>
                     </div>
-                    <Badge variant={cfg.variant} className="flex-shrink-0">
-                      {cfg.label}
-                    </Badge>
+                    <Badge variant={cfg.variant}>{cfg.label}</Badge>
                   </div>
                 );
               })}
@@ -310,10 +322,7 @@ export default function PayoutsPage() {
                   {payouts.map((p) => {
                     const cfg = statusConfig[p.status] || statusConfig.PENDING;
                     return (
-                      <tr
-                        key={p.id}
-                        className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors"
-                      >
+                      <tr key={p.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
                         <td className="px-6 py-4 text-zinc-300">
                           {new Date(p.createdAt).toLocaleDateString("fr-FR", {
                             day: "2-digit",
@@ -326,12 +335,8 @@ export default function PayoutsPage() {
                           {p.fees > 0 ? fmt(p.fees) : "Gratuit"}
                         </td>
                         <td className="px-6 py-4 text-zinc-300">
-                          <div>
-                            <span className="text-zinc-300">{p.bankAccount.holderName}</span>
-                            <span className="text-zinc-500 ml-2 text-xs">
-                              {p.bankAccount.ibanMasked}
-                            </span>
-                          </div>
+                          <span>{p.bankAccount.holderName}</span>
+                          <span className="text-zinc-500 ml-2 text-xs">{p.bankAccount.ibanMasked}</span>
                         </td>
                         <td className="px-6 py-4">
                           <Badge variant={cfg.variant}>{cfg.label}</Badge>
