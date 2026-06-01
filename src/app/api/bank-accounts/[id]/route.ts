@@ -20,17 +20,6 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Impossible de supprimer : retrait en cours" }, { status: 400 });
     }
 
-    if (account.providerBankAccountId) {
-      try {
-        const stripe = (await import("stripe")).default;
-        const stripeClient = new stripe(process.env.STRIPE_SECRET_KEY!);
-        const stripeAccountId = process.env.STRIPE_ACCOUNT_ID!;
-        await stripeClient.accounts.deleteExternalAccount(stripeAccountId, account.providerBankAccountId);
-      } catch (e) {
-        console.error("STRIPE_DELETE_BANK:", e);
-      }
-    }
-
     await db.bankAccount.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
