@@ -6,7 +6,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Building2 } from "lucide-react";
+import { Building2, Trash2 } from "lucide-react";
 
 interface BankAccount {
   id: string;
@@ -32,6 +32,12 @@ export default function BankAccountPage() {
   };
 
   useEffect(() => { loadAccounts(); }, []);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Supprimer ce compte bancaire ?")) return;
+    const res = await apiFetch(`/api/bank-accounts/${id}`, { method: "DELETE" });
+    if (res.ok) loadAccounts();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,6 +101,12 @@ export default function BankAccountPage() {
                 <Badge variant={a.status === "VERIFIED" ? "success" : "warning"}>
                   {a.status === "VERIFIED" ? "Vérifié" : "En attente"}
                 </Badge>
+                <button
+                  onClick={() => handleDelete(a.id)}
+                  className="ml-2 rounded-lg p-2 text-zinc-500 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
             </Card>
           ))}
