@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getPaymentProvider } from "@/lib/payments";
 import { addBankAccountSchema } from "@/lib/validators";
 import { maskIban } from "@/lib/utils";
 import { encrypt } from "@/lib/crypto";
+import { getPaymentProvider } from "@/lib/payments";
 
 export async function GET() {
   const s = await getSession();
@@ -20,17 +20,26 @@ export async function POST(req: Request) {
 
     const v = addBankAccountSchema.parse(await req.json());
 
-    let providerBankId = "local";
-    try {
-      const provider = getPaymentProvider();
-      const result = await provider.registerBankAccount({ userId: s.userId, iban: v.iban, holderName: v.holderName });
-      providerBankId = result.providerBankId;
-    } catch (providerErr: any) {
-      console.warn("Provider registerBankAccount failed, storing locally:", providerErr?.message);
-    }
+    const provider = getPaymentProvider();
+    const result = await provider.registerBankAccount({
+      userId: s.userId,
+      iban: v.iban,
+      holderName: v.holderName,
+      bic: v.bic,
+      country: v.country || "FR",
+    });
 
     const account = await db.bankAccount.create({
-      data: { userId: s.userId, ibanMasked: maskIban(v.iban), ibanEncrypted: encrypt(v.iban), bic: v.bic, holderName: v.holderName, providerBankAccountId: providerBankId, status: providerBankId === "local" ? "PENDING" : "VERIFIED", isDefault: true },
+      data: {
+        userId: s.userId,
+        ibanMasked: maskIban(v.iban),
+        ibanEncrypted: encrypt(v.iban),
+        bic: v.bic,
+        holderName: v.holderName,
+        status: "VERIFIED",
+        isDefault: true,
+        providerBankAccountId: result.providerBankId,
+      },
     });
 
     await db.bankAccount.updateMany({ where: { userId: s.userId, id: { not: account.id } }, data: { isDefault: false } });

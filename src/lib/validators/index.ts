@@ -52,4 +52,5 @@ export const addBankAccountSchema = z.object({
   iban: z.string().min(15).max(34).regex(/^[A-Z]{2}\d{2}[A-Z0-9]{4,30}$/i, "Format IBAN invalide"),
   holderName: z.string().min(2).max(100),
   bic: z.string().min(8).max(11).optional(),
+  country: z.string().length(2).optional(),
 });

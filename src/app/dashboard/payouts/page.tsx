@@ -56,14 +56,14 @@ export default function PayoutsPage() {
       if (d.accounts?.length) setSelectedBank(d.accounts[0].id);
     });
     apiFetch("/api/wallet").then((r) => r.json()).then((d) => {
-      if (!d.error) setWallet(d);
+      if (!d.error && d.wallet) setWallet(d.wallet);
     });
   }, []);
 
   const refreshData = () => {
     apiFetch("/api/payouts/history").then((r) => r.json()).then((d) => setPayouts(d.payouts || []));
     apiFetch("/api/wallet").then((r) => r.json()).then((d) => {
-      if (!d.error) setWallet(d);
+      if (!d.error && d.wallet) setWallet(d.wallet);
     });
   };
 

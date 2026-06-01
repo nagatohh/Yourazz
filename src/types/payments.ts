@@ -34,6 +34,7 @@ export interface RegisterBankAccountRequest {
   iban: string;
   holderName: string;
   bic?: string;
+  country?: string;
 }
 
 export interface RegisterBankAccountResult {

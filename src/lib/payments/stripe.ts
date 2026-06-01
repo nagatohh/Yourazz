@@ -73,15 +73,16 @@ export class StripePaymentProvider implements PaymentProvider {
   async createPayout(req: PayoutRequest): Promise<PayoutResult> {
     const stripe = getStripe();
 
-    const transfer = await stripe.transfers.create({
+    const payout = await stripe.payouts.create({
       amount: req.amount,
       currency: req.currency || "eur",
       destination: req.bankAccountId,
       description: req.reference || "Retrait YouRazz",
+      metadata: { walletId: req.walletId },
     });
 
     return {
-      providerPayoutId: transfer.id,
+      providerPayoutId: payout.id,
       status: "processing",
     };
   }
@@ -89,23 +90,26 @@ export class StripePaymentProvider implements PaymentProvider {
   async registerBankAccount(req: RegisterBankAccountRequest): Promise<RegisterBankAccountResult> {
     const stripe = getStripe();
 
-    const account = await stripe.accounts.create({
-      type: "custom",
-      country: "FR",
-      capabilities: { transfers: { requested: true } },
-      external_account: {
-        object: "bank_account",
-        country: "FR",
+    const token = await stripe.tokens.create({
+      bank_account: {
+        country: req.country || "FR",
         currency: "eur",
         account_holder_name: req.holderName,
+        account_holder_type: "individual",
         account_number: req.iban,
-      } as any,
-      metadata: { userId: req.userId },
+      },
+    } as any);
+
+    const stripeAccountId = process.env.STRIPE_ACCOUNT_ID;
+    if (!stripeAccountId) throw new Error("STRIPE_ACCOUNT_ID missing");
+
+    const bankAccount = await stripe.accounts.createExternalAccount(stripeAccountId, {
+      external_account: token.id,
     });
 
     return {
-      providerBankId: account.id,
-      status: "pending",
+      providerBankId: bankAccount.id,
+      status: "verified",
     };
   }
 
@@ -139,8 +143,8 @@ export class StripePaymentProvider implements PaymentProvider {
         "checkout.session.completed": "payment.succeeded",
         "checkout.session.expired": "payment.failed",
         "payment_intent.payment_failed": "payment.failed",
-        "transfer.paid": "payout.paid",
-        "transfer.failed": "payout.failed",
+        "payout.paid": "payout.paid",
+        "payout.failed": "payout.failed",
         "charge.dispute.created": "dispute.created",
         "charge.refunded": "refund.created",
       };
@@ -148,11 +152,13 @@ export class StripePaymentProvider implements PaymentProvider {
 
       const obj = event.data.object as any;
 
+      const id = eventType.startsWith("payout.") ? obj.id : (obj.payment_intent || obj.id);
+
       return {
         isValid: true,
         eventType,
         eventId: event.id,
-        payload: { id: obj.payment_intent || obj.id, ...obj },
+        payload: { id, ...obj },
       };
     } catch {
       return { isValid: false };

@@ -19,10 +19,14 @@ export async function POST(req: Request) {
     const bank = await db.bankAccount.findFirst({ where: { id: v.bankAccountId, userId: user.id } });
     if (!bank) return NextResponse.json({ error: "Compte bancaire introuvable" }, { status: 404 });
 
+    if (!bank.providerBankAccountId) {
+      return NextResponse.json({ error: "Compte bancaire non lié à Stripe. Supprimez-le et ajoutez-le à nouveau." }, { status: 400 });
+    }
+
     const provider = getPaymentProvider();
     const result = await provider.createPayout({
       walletId: user.wallet.providerWalletId || "",
-      bankAccountId: bank.providerBankAccountId || "",
+      bankAccountId: bank.providerBankAccountId,
       amount: v.amount,
     });
 
