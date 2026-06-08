@@ -74,6 +74,38 @@ export async function POST() {
     }
   }
 
+  // Full reconciliation: recalculate wallet balance from all SUCCEEDED transactions
+  const allWallets = await db.wallet.findMany();
+  const reconciled: { walletId: string; before: number; after: number }[] = [];
+
+  for (const w of allWallets) {
+    const succeededPayins = await db.transaction.aggregate({
+      where: { walletId: w.id, type: "PAYIN", status: "SUCCEEDED" },
+      _sum: { netAmount: true },
+    });
+    const succeededPayouts = await db.transaction.aggregate({
+      where: { walletId: w.id, type: "PAYOUT", status: { in: ["SUCCEEDED", "PROCESSING"] } },
+      _sum: { amount: true },
+    });
+    const refunds = await db.transaction.aggregate({
+      where: { walletId: w.id, type: "PAYIN", status: "REFUNDED" },
+      _sum: { netAmount: true },
+    });
+
+    const totalIn = succeededPayins._sum.netAmount || 0;
+    const totalOut = succeededPayouts._sum.amount || 0;
+    const totalRefunded = refunds._sum.netAmount || 0;
+    const correctBalance = totalIn - totalOut - totalRefunded;
+
+    if (correctBalance !== w.availableBalance) {
+      reconciled.push({ walletId: w.id, before: w.availableBalance, after: correctBalance });
+      await db.wallet.update({
+        where: { id: w.id },
+        data: { availableBalance: correctBalance, pendingBalance: 0 },
+      });
+    }
+  }
+
   const wallet = await db.wallet.findFirst({
     where: { userId: admin.userId },
     select: { availableBalance: true, pendingBalance: true },
@@ -82,6 +114,7 @@ export async function POST() {
   return NextResponse.json({
     synced: results.length,
     results,
+    reconciled,
     wallet,
   });
 }
