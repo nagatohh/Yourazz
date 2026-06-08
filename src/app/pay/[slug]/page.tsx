@@ -1,12 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { StripeCheckout } from "@/components/checkout/stripe-checkout";
 import { Lock, Shield, CreditCard, CheckCircle, Calendar } from "lucide-react";
+import { PaymentConsentBox, type ConsentData } from "@/components/checkout/payment-consent-box";
+
+const StripeCheckout = dynamic(
+  () => import("@/components/checkout/stripe-checkout").then((m) => ({ default: m.StripeCheckout })),
+  { loading: () => <div className="flex justify-center py-8"><div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div> }
+);
 
 interface LinkData {
   id: string;
@@ -32,6 +38,8 @@ export default function PublicPayPage() {
   const [payerEmail, setPayerEmail] = useState("");
   const [description, setDescription] = useState("");
   const [showCheckout, setShowCheckout] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
+  const [consentData, setConsentData] = useState<ConsentData | null>(null);
   const [payAmount, setPayAmount] = useState(0);
 
   useEffect(() => {
@@ -48,6 +56,12 @@ export default function PublicPayPage() {
     const finalAmount = linkData?.fixedAmount || Math.round(parseFloat(amount) * 100);
     if (!finalAmount || finalAmount < 100) return;
     setPayAmount(finalAmount);
+    setShowConsent(true);
+  };
+
+  const handleConsent = (consent: ConsentData) => {
+    setConsentData(consent);
+    setShowConsent(false);
     setShowCheckout(true);
   };
 
@@ -125,7 +139,7 @@ export default function PublicPayPage() {
             )}
           </div>
 
-          {!showCheckout ? (
+          {!showConsent && !showCheckout ? (
             <form onSubmit={handleContinue} className="space-y-4">
               {!linkData.fixedAmount && (
                 <Input
@@ -168,6 +182,27 @@ export default function PublicPayPage() {
                 Continuer vers le paiement
               </Button>
             </form>
+          ) : showConsent && !showCheckout ? (
+            <div className="space-y-4">
+              <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-zinc-500">Montant</span>
+                  <span className="text-white font-bold text-xl tracking-tight">{(payAmount / 100).toFixed(2)} €</span>
+                </div>
+              </div>
+              <PaymentConsentBox
+                amount={payAmount}
+                recipientName={linkData.user.name}
+                description={description || undefined}
+                onConsent={handleConsent}
+              />
+              <button
+                onClick={() => setShowConsent(false)}
+                className="w-full text-center text-sm text-zinc-600 hover:text-zinc-400 transition-colors mt-2"
+              >
+                &larr; Modifier les informations
+              </button>
+            </div>
           ) : (
             <div className="space-y-4">
               <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4">
@@ -193,6 +228,7 @@ export default function PublicPayPage() {
                 payerEmail={payerEmail}
                 payerName={payerName}
                 description={description}
+                consent={consentData || undefined}
                 onSuccess={handleSuccess}
                 onError={handleError}
               />

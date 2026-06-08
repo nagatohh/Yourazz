@@ -12,23 +12,14 @@ import {
   Clock,
   ArrowUpRight,
   ArrowDownRight,
-  Plus,
   Banknote,
   LinkIcon,
   ArrowRight,
 } from "lucide-react";
 import { StatCard } from "@/components/ui/stat-card";
 import { Card, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import RevenueChart from "@/components/dashboard/revenue-chart";
 
 interface Stats {
   availableBalance: number;
@@ -196,7 +187,7 @@ export default function DashboardPage() {
 
       {/* Chart + Recent Transactions */}
       <div className="grid gap-4 lg:grid-cols-3">
-        {/* Revenue Chart */}
+        {/* Revenue Chart - lazy loaded */}
         <Card className="p-4 sm:p-6 lg:col-span-2">
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <CardTitle className="text-base sm:text-lg">Revenus</CardTitle>
@@ -223,48 +214,7 @@ export default function DashboardPage() {
               </button>
             </div>
           </div>
-          <div className="h-48 sm:h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#e11d48" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#e11d48" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis
-                  dataKey="name"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#52525b", fontSize: 11 }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#52525b", fontSize: 11 }}
-                  tickFormatter={(v) => `${v / 100}€`}
-                  width={50}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "#0f0f14",
-                    border: "1px solid rgba(255,255,255,0.06)",
-                    borderRadius: "12px",
-                    padding: "10px 14px",
-                  }}
-                  labelStyle={{ color: "#71717a", fontSize: 12 }}
-                  formatter={(value: number) => [fmt(value), "Revenus"]}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#e11d48"
-                  strokeWidth={2}
-                  fill="url(#colorRevenue)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          <RevenueChart data={chartData} />
         </Card>
 
         {/* Recent Activity */}

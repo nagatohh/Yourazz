@@ -51,7 +51,9 @@ const config: Config = {
         glow: "glow 3s ease-in-out infinite alternate",
         shimmer: "shimmer 2s linear infinite",
         float: "float 6s ease-in-out infinite",
-        "fade-in": "fadeIn 0.5s ease-out",
+        "fade-in": "fadeIn 0.5s ease-out forwards",
+        "fade-up": "fadeUp 0.6s ease-out forwards",
+        "fade-down": "fadeDown 0.4s ease-out forwards",
       },
       keyframes: {
         glow: {
@@ -67,7 +69,15 @@ const config: Config = {
           "50%": { transform: "translateY(-10px)" },
         },
         fadeIn: {
-          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        fadeUp: {
+          "0%": { opacity: "0", transform: "translateY(20px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        fadeDown: {
+          "0%": { opacity: "0", transform: "translateY(-10px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
       },

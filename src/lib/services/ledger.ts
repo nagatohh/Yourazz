@@ -109,13 +109,15 @@ export async function confirmPayin(params: ConfirmPayinParams) {
       data: { status: "SUCCEEDED" },
     });
 
-    // Move from pending to available
-    // pendingBalance was incremented by the original amount
-    // availableBalance gets the netAmount (after fees)
+    // Credit available balance with net amount (after fees)
+    // Also decrement pendingBalance if it was previously incremented (legacy intents)
+    const wallet = await tx.wallet.findUnique({ where: { id: transaction.walletId } });
+    const hasPending = wallet && wallet.pendingBalance >= transaction.amount;
+
     await tx.wallet.update({
       where: { id: transaction.walletId },
       data: {
-        pendingBalance: { decrement: transaction.amount },
+        ...(hasPending ? { pendingBalance: { decrement: transaction.amount } } : {}),
         availableBalance: { increment: transaction.netAmount },
       },
     });
@@ -159,11 +161,14 @@ export async function failPayin(params: FailPayinParams) {
       data: { status: "FAILED", failureReason: params.reason },
     });
 
-    // Remove from pending balance
-    await tx.wallet.update({
-      where: { id: transaction.walletId },
-      data: { pendingBalance: { decrement: transaction.amount } },
-    });
+    // Only decrement pendingBalance if it was previously incremented (legacy intents)
+    const wallet = await tx.wallet.findUnique({ where: { id: transaction.walletId } });
+    if (wallet && wallet.pendingBalance >= transaction.amount) {
+      await tx.wallet.update({
+        where: { id: transaction.walletId },
+        data: { pendingBalance: { decrement: transaction.amount } },
+      });
+    }
 
     await tx.auditLog.create({
       data: {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Logo } from "@/components/ui/logo";
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/fetch";
 import {
   LayoutDashboard,
   ArrowUpDown,
@@ -46,9 +47,10 @@ export function Sidebar() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    fetch("/api/auth/me")
+    apiFetch("/api/auth/me")
       .then((r) => r.json())
-      .then((d) => { if (d.user) setRole(d.user.role); });
+      .then((d) => { if (d.user) setRole(d.user.role); })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {

@@ -3,6 +3,14 @@ import Stripe from "stripe";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
+import { createPaymentEvidence, calculateRiskScore } from "@/lib/services/chargeback-defender";
+
+const consentSchema = z.object({
+  termsAccepted: z.boolean(),
+  refundPolicyAccepted: z.boolean(),
+  consentAt: z.string(),
+  consentDurationMs: z.number(),
+}).optional();
 
 const schema = z.object({
   amount: z.number().int().min(100).max(99999900),
@@ -11,6 +19,7 @@ const schema = z.object({
   payerName: z.string().max(100).optional(),
   description: z.string().max(500).optional(),
   idempotencyKey: z.string().max(64).optional(),
+  consent: consentSchema,
 });
 
 function getStripe() {
@@ -56,6 +65,7 @@ export async function POST(req: Request) {
       },
     }, v.idempotencyKey ? { idempotencyKey: v.idempotencyKey } : undefined);
 
+    const fees = Math.round((v.amount * 150) / 10000);
     const tx = await db.transaction.create({
       data: {
         walletId: receiver.wallet.id,
@@ -63,8 +73,8 @@ export async function POST(req: Request) {
         type: "PAYIN",
         status: "PENDING",
         amount: v.amount,
-        fees: Math.round((v.amount * 150) / 10000),
-        netAmount: v.amount - Math.round((v.amount * 150) / 10000),
+        fees,
+        netAmount: v.amount - fees,
         paymentMethod: "CARD",
         providerTransactionId: paymentIntent.id,
         provider: "stripe",
@@ -75,11 +85,6 @@ export async function POST(req: Request) {
       },
     });
 
-    await db.wallet.update({
-      where: { id: receiver.wallet.id },
-      data: { pendingBalance: { increment: v.amount } },
-    });
-
     await db.auditLog.create({
       data: {
         userId: receiver.id,
@@ -88,6 +93,55 @@ export async function POST(req: Request) {
         metadata: { amount: v.amount, paymentIntentId: paymentIntent.id },
       },
     });
+
+    const userAgent = req.headers.get("user-agent") || undefined;
+
+    if (v.consent?.termsAccepted && v.consent?.refundPolicyAccepted) {
+      const evidence = await createPaymentEvidence({
+        stripePaymentIntentId: paymentIntent.id,
+        payerEmail: v.payerEmail,
+        payerName: v.payerName,
+        amount: v.amount,
+        recipientAdminId: receiver.id,
+        description: v.description,
+        ipAddress: ip,
+        userAgent,
+        termsAccepted: v.consent.termsAccepted,
+        refundPolicyAccepted: v.consent.refundPolicyAccepted,
+        consentAt: new Date(v.consent.consentAt),
+      });
+
+      const risk = await calculateRiskScore({
+        amount: v.amount,
+        payerEmail: v.payerEmail,
+        payerName: v.payerName,
+        ipAddress: ip,
+        userAgent,
+        description: v.description,
+        recipientAdminId: receiver.id,
+        consentDurationMs: v.consent.consentDurationMs,
+      });
+
+      await db.paymentRisk.create({
+        data: {
+          paymentEvidenceId: evidence.id,
+          score: risk.score,
+          level: risk.level,
+          reasons: risk.reasons,
+        },
+      });
+
+      if (risk.level === "CRITICAL") {
+        const { createAdminAlert } = await import("@/lib/services/chargeback-defender");
+        await createAdminAlert({
+          type: "HIGH_RISK_PAYMENT",
+          severity: "CRITICAL",
+          title: `Paiement à risque critique: ${(v.amount / 100).toFixed(2)}€`,
+          message: `Score ${risk.score}/100. Raisons: ${risk.reasons.join(", ")}`,
+          paymentEvidenceId: evidence.id,
+        });
+      }
+    }
 
     return NextResponse.json({
       clientSecret: paymentIntent.client_secret,

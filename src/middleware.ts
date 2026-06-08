@@ -25,7 +25,7 @@ export async function middleware(req: NextRequest) {
       // For non-protected paths (including /login), clear cookie and proceed
       const res = NextResponse.next();
       res.cookies.set("session", "", { maxAge: 0, path: "/" });
-      addSecurityHeaders(res);
+      addSecurityHeaders(res, pathname);
       return res;
     }
   }
@@ -60,17 +60,22 @@ export async function middleware(req: NextRequest) {
   }
 
   const res = NextResponse.next();
-  addSecurityHeaders(res);
+  addSecurityHeaders(res, pathname);
   return res;
 }
 
-function addSecurityHeaders(res: NextResponse) {
+function addSecurityHeaders(res: NextResponse, pathname: string) {
   res.headers.set("X-Content-Type-Options", "nosniff");
-  res.headers.set("X-Frame-Options", "DENY");
   res.headers.set("X-XSS-Protection", "1; mode=block");
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   res.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   res.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+
+  if (pathname.startsWith("/pay")) {
+    res.headers.set("X-Frame-Options", "SAMEORIGIN");
+  } else {
+    res.headers.set("X-Frame-Options", "DENY");
+  }
 }
 
 export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg|.well-known).*)"] };

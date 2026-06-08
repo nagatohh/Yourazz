@@ -5,6 +5,8 @@ import { z } from "zod";
 import { maskIban } from "@/lib/utils";
 import { addExternalBankAccount, createConnectedAccount } from "@/lib/services/stripe-connect";
 
+export const dynamic = "force-dynamic";
+
 const addBankAccountSchema = z.object({
   iban: z.string().min(15).max(34).regex(/^[A-Z]{2}\d{2}[A-Z0-9]{4,30}$/i, "Format IBAN invalide"),
   holderName: z.string().min(2).max(100),

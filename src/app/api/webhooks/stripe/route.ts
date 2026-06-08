@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { db } from "@/lib/db";
 import { confirmPayin, failPayin } from "@/lib/services/ledger";
+import { confirmEvidence, failEvidence, handleDispute } from "@/lib/services/chargeback-defender";
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -52,9 +53,24 @@ export async function POST(req: Request) {
     switch (event.type) {
       case "payment_intent.succeeded": {
         const result = await confirmPayin({ providerTxId: obj.id, provider: "stripe" });
+        const chargeId = obj.latest_charge || obj.charges?.data?.[0]?.id;
+        await confirmEvidence(obj.id, chargeId);
         if (result) {
-          // Send receipt if needed
           const tx = await db.transaction.findUnique({ where: { providerTransactionId: obj.id } });
+          if (tx) {
+            const charges = obj.charges?.data || obj.latest_charge ? [obj.latest_charge] : [];
+            const charge = charges[0];
+            const walletType = charge?.payment_method_details?.type;
+            const cardWallet = charge?.payment_method_details?.card?.wallet?.type;
+            let method = tx.paymentMethod;
+            if (cardWallet === "apple_pay") method = "APPLE_PAY";
+            else if (cardWallet === "google_pay") method = "GOOGLE_PAY";
+            else if (walletType === "revolut_pay") method = "REVOLUT_PAY";
+            else if (walletType === "paypal") method = "PAYPAL";
+            if (method !== tx.paymentMethod) {
+              await db.transaction.update({ where: { id: tx.id }, data: { paymentMethod: method } });
+            }
+          }
           if (tx?.payerEmail && !tx.receiptSent) {
             try {
               const { sendPaymentReceipt } = await import("@/lib/email");
@@ -92,9 +108,16 @@ export async function POST(req: Request) {
         break;
       }
 
+      case "payment_intent.canceled": {
+        await failPayin({ providerTxId: obj.id, reason: "Paiement annulé" });
+        await failEvidence(obj.id);
+        break;
+      }
+
       case "payment_intent.payment_failed": {
         const reason = obj.last_payment_error?.message || "Paiement refuse";
         await failPayin({ providerTxId: obj.id, reason });
+        await failEvidence(obj.id);
         break;
       }
 
@@ -127,6 +150,17 @@ export async function POST(req: Request) {
       }
 
       case "charge.dispute.created": {
+        await handleDispute({
+          stripeDisputeId: obj.id,
+          stripeChargeId: obj.charge,
+          amount: obj.amount,
+          currency: obj.currency?.toUpperCase(),
+          reason: obj.reason,
+          status: obj.status,
+          evidenceDueBy: obj.evidence_details?.due_by
+            ? new Date(obj.evidence_details.due_by * 1000)
+            : undefined,
+        });
         const txId = obj.payment_intent as string;
         if (txId) {
           const tx = await db.transaction.findUnique({ where: { providerTransactionId: txId } });
@@ -141,6 +175,33 @@ export async function POST(req: Request) {
             });
           }
         }
+        break;
+      }
+
+      case "charge.dispute.updated": {
+        await handleDispute({
+          stripeDisputeId: obj.id,
+          stripeChargeId: obj.charge,
+          amount: obj.amount,
+          currency: obj.currency?.toUpperCase(),
+          reason: obj.reason,
+          status: obj.status,
+          evidenceDueBy: obj.evidence_details?.due_by
+            ? new Date(obj.evidence_details.due_by * 1000)
+            : undefined,
+        });
+        break;
+      }
+
+      case "charge.dispute.closed": {
+        await handleDispute({
+          stripeDisputeId: obj.id,
+          stripeChargeId: obj.charge,
+          amount: obj.amount,
+          currency: obj.currency?.toUpperCase(),
+          reason: obj.reason,
+          status: obj.status,
+        });
         break;
       }
 

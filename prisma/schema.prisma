@@ -177,6 +177,8 @@ enum PaymentMethod {
   CARD
   APPLE_PAY
   GOOGLE_PAY
+  REVOLUT_PAY
+  PAYPAL
   BANK_TRANSFER
   SEPA
   OPEN_BANKING
@@ -443,4 +445,117 @@ enum GuardianIssueStatus {
   REPAIRED
   IGNORED
   MANUAL_REQUIRED
+}
+
+// ─── CHARGEBACK DEFENDER ────────────────────────────────────────────────────
+
+model PaymentEvidence {
+  id                      String    @id @default(cuid())
+  transactionId           String?
+  stripePaymentIntentId   String?   @unique
+  stripeCheckoutSessionId String?
+  stripeChargeId          String?
+  payerEmail              String?
+  payerName               String?
+  amount                  Int
+  currency                String    @default("EUR")
+  recipientAdminId        String
+  description             String?
+  ipAddress               String?
+  userAgent               String?
+  termsAccepted           Boolean   @default(false)
+  refundPolicyAccepted    Boolean   @default(false)
+  termsVersion            String    @default("1.0")
+  refundPolicyVersion     String    @default("1.0")
+  consentAt               DateTime?
+  paymentStatus           String    @default("pending")
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  deliveryProof PaymentDeliveryProof?
+  risk          PaymentRisk?
+  dispute       StripeDispute?
+  alerts        AdminAlert[]
+
+  @@index([stripePaymentIntentId])
+  @@index([payerEmail])
+  @@index([recipientAdminId])
+  @@index([paymentStatus])
+  @@index([createdAt])
+}
+
+model PaymentDeliveryProof {
+  id                    String   @id @default(cuid())
+  paymentEvidenceId     String   @unique
+  stripePaymentIntentId String?
+  stripeChargeId        String?
+  deliveredAt           DateTime @default(now())
+  webhookConfirmed      Boolean  @default(false)
+  successPageViewed     Boolean  @default(false)
+  receiptSent           Boolean  @default(false)
+  metadata              Json?
+  createdAt             DateTime @default(now())
+
+  evidence PaymentEvidence @relation(fields: [paymentEvidenceId], references: [id])
+
+  @@index([stripePaymentIntentId])
+}
+
+model PaymentRisk {
+  id                String   @id @default(cuid())
+  paymentEvidenceId String   @unique
+  score             Int      @default(0)
+  level             RiskLevel @default(LOW)
+  reasons           Json
+  createdAt         DateTime @default(now())
+
+  evidence PaymentEvidence @relation(fields: [paymentEvidenceId], references: [id])
+
+  @@index([level])
+  @@index([score])
+  @@index([createdAt])
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model StripeDispute {
+  id                String    @id @default(cuid())
+  stripeDisputeId   String    @unique
+  stripeChargeId    String?
+  paymentEvidenceId String?   @unique
+  amount            Int
+  currency          String    @default("EUR")
+  reason            String?
+  status            String    @default("needs_response")
+  evidenceDueBy     DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  evidence PaymentEvidence? @relation(fields: [paymentEvidenceId], references: [id])
+
+  @@index([stripeDisputeId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model AdminAlert {
+  id                String   @id @default(cuid())
+  type              String
+  severity          String   @default("INFO")
+  title             String
+  message           String
+  paymentEvidenceId String?
+  read              Boolean  @default(false)
+  createdAt         DateTime @default(now())
+
+  evidence PaymentEvidence? @relation(fields: [paymentEvidenceId], references: [id])
+
+  @@index([type])
+  @@index([read])
+  @@index([createdAt])
 }

@@ -16,7 +16,7 @@
   "crons": [
     {
       "path": "/api/cron/guardian",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 6 * * *"
     }
   ]
 }

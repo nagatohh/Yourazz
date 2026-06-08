@@ -36,6 +36,8 @@ const methodLabels: Record<string, string> = {
   CARD: "Carte bancaire",
   APPLE_PAY: "Apple Pay",
   GOOGLE_PAY: "Google Pay",
+  REVOLUT_PAY: "Revolut Pay",
+  PAYPAL: "PayPal",
   BANK_TRANSFER: "Virement",
   OPEN_BANKING: "Open Banking",
   SEPA: "SEPA",

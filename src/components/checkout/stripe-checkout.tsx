@@ -20,6 +20,12 @@ interface CheckoutProps {
   payerEmail?: string;
   payerName?: string;
   description?: string;
+  consent?: {
+    termsAccepted: boolean;
+    refundPolicyAccepted: boolean;
+    consentAt: string;
+    consentDurationMs: number;
+  };
   onSuccess: (transactionId: string) => void;
   onError: (message: string) => void;
 }
@@ -44,6 +50,7 @@ export function StripeCheckout(props: CheckoutProps) {
         payerName: props.payerName,
         description: props.description,
         idempotencyKey,
+        consent: props.consent,
       }),
     })
       .then((r) => r.json())
@@ -211,11 +218,16 @@ function CheckoutForm({ amount, transactionId, onSuccess, onError }: CheckoutFor
           onConfirm={handleExpressCheckout}
           onReady={({ availablePaymentMethods }) => {
             setExpressAvailable(
-              !!(availablePaymentMethods?.applePay || availablePaymentMethods?.googlePay)
+              !!(availablePaymentMethods?.applePay || availablePaymentMethods?.googlePay || availablePaymentMethods?.link)
             );
           }}
           options={{
             layout: { maxColumns: 2, maxRows: 1 },
+            paymentMethods: {
+              applePay: "always",
+              googlePay: "always",
+              link: "auto",
+            },
           }}
         />
       </div>
@@ -230,6 +242,12 @@ function CheckoutForm({ amount, transactionId, onSuccess, onError }: CheckoutFor
             <span className="bg-[#0a0a0f] px-3 text-zinc-500">ou payer par carte</span>
           </div>
         </div>
+      )}
+
+      {expressAvailable === false && (
+        <p className="text-[11px] text-zinc-600 text-center mb-3">
+          Apple Pay, Google Pay, Revolut Pay et PayPal disponibles selon votre appareil
+        </p>
       )}
 
       {/* Card Payment */}

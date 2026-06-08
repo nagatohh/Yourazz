@@ -3,6 +3,8 @@ import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getConnectedBalance } from "@/lib/services/stripe-connect";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const s = await getSession();

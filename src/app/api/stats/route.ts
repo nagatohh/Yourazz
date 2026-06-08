@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const s = await getSession();
   if (!s) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
@@ -12,13 +14,26 @@ export async function GET() {
   startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const [wallet, todayTx, weekTx, monthTx, allPayins, payouts, recentTx] = await Promise.all([
+  const [wallet, todayAgg, weekTx, monthTx, totalCount, succeededCount, payoutAgg, recentTx] = await Promise.all([
     db.wallet.findUnique({ where: { userId: s.userId } }),
-    db.transaction.findMany({ where: { userId: s.userId, type: "PAYIN", status: "SUCCEEDED", createdAt: { gte: startOfDay } } }),
-    db.transaction.findMany({ where: { userId: s.userId, type: "PAYIN", status: "SUCCEEDED", createdAt: { gte: startOfWeek } } }),
-    db.transaction.findMany({ where: { userId: s.userId, type: "PAYIN", status: "SUCCEEDED", createdAt: { gte: startOfMonth } } }),
-    db.transaction.findMany({ where: { userId: s.userId, type: "PAYIN" } }),
-    db.payout.findMany({ where: { userId: s.userId, status: "PAID" } }),
+    db.transaction.aggregate({
+      where: { userId: s.userId, type: "PAYIN", status: "SUCCEEDED", createdAt: { gte: startOfDay } },
+      _sum: { amount: true },
+    }),
+    db.transaction.findMany({
+      where: { userId: s.userId, type: "PAYIN", status: "SUCCEEDED", createdAt: { gte: startOfWeek } },
+      select: { amount: true, createdAt: true },
+    }),
+    db.transaction.findMany({
+      where: { userId: s.userId, type: "PAYIN", status: "SUCCEEDED", createdAt: { gte: startOfMonth } },
+      select: { amount: true, createdAt: true },
+    }),
+    db.transaction.count({ where: { userId: s.userId, type: "PAYIN" } }),
+    db.transaction.count({ where: { userId: s.userId, type: "PAYIN", status: "SUCCEEDED" } }),
+    db.payout.aggregate({
+      where: { userId: s.userId, status: "PAID" },
+      _sum: { amount: true },
+    }),
     db.transaction.findMany({
       where: { userId: s.userId },
       orderBy: { createdAt: "desc" },
@@ -35,18 +50,18 @@ export async function GET() {
     }),
   ]);
 
-  const sum = (txs: { amount: number }[]) => txs.reduce((a, t) => a + t.amount, 0);
-  const succeeded = allPayins.filter((t) => t.status === "SUCCEEDED").length;
+  const weekRevenue = weekTx.reduce((a, t) => a + t.amount, 0);
+  const monthRevenue = monthTx.reduce((a, t) => a + t.amount, 0);
 
   return NextResponse.json({
     availableBalance: wallet?.availableBalance || 0,
     pendingBalance: wallet?.pendingBalance || 0,
-    todayRevenue: sum(todayTx),
-    weekRevenue: sum(weekTx),
-    monthRevenue: sum(monthTx),
-    totalWithdrawn: sum(payouts),
-    totalPayments: allPayins.length,
-    successRate: allPayins.length > 0 ? Math.round((succeeded / allPayins.length) * 100) : 0,
+    todayRevenue: todayAgg._sum.amount || 0,
+    weekRevenue,
+    monthRevenue,
+    totalWithdrawn: payoutAgg._sum.amount || 0,
+    totalPayments: totalCount,
+    successRate: totalCount > 0 ? Math.round((succeededCount / totalCount) * 100) : 0,
     weeklyData: buildWeeklyData(weekTx, startOfWeek),
     monthlyData: buildMonthlyData(monthTx, startOfMonth),
     recentTransactions: recentTx,

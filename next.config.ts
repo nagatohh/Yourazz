@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  compress: true,
+  poweredByHeader: false,
+  reactStrictMode: true,
+  experimental: {
+    optimizePackageImports: ["lucide-react", "@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-select", "@radix-ui/react-tabs"],
+  },
   async headers() {
     return [
       {
@@ -14,8 +20,14 @@ const nextConfig: NextConfig = {
       {
         source: "/pay/:path*",
         headers: [
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'self' https://js.stripe.com https://hooks.stripe.com" },
+        ],
+      },
+      {
+        source: "/:path*.(js|css|woff2|svg|png|jpg|ico)",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
         ],
       },
     ];
