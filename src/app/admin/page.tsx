@@ -12,6 +12,7 @@ import {
   TrendingUp,
   AlertTriangle,
   Activity,
+  RefreshCw,
 } from "lucide-react";
 import { StatCard } from "@/components/ui/stat-card";
 import Link from "next/link";
@@ -43,6 +44,8 @@ export default function AdminPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -132,12 +135,49 @@ export default function AdminPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={syncing}
+            onClick={async () => {
+              setSyncing(true);
+              setSyncResult(null);
+              try {
+                const r = await apiFetch("/api/admin/sync-payments", { method: "POST" });
+                const data = await r.json();
+                if (data.error) {
+                  setSyncResult(`Erreur: ${data.error}`);
+                } else if (data.synced === 0) {
+                  setSyncResult("Aucune transaction à synchroniser");
+                } else {
+                  const confirmed = data.results.filter((r: any) => r.action === "confirmed").length;
+                  const failed = data.results.filter((r: any) => r.action === "failed").length;
+                  setSyncResult(`${confirmed} confirmée(s), ${failed} expirée(s)`);
+                  setTimeout(() => window.location.reload(), 1500);
+                }
+              } catch {
+                setSyncResult("Erreur réseau");
+              } finally {
+                setSyncing(false);
+              }
+            }}
+          >
+            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Synchro..." : "Forcer synchro"}
+          </Button>
           <div className="flex items-center gap-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5">
             <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[11px] font-medium text-emerald-400">Systeme operationnel</span>
           </div>
         </div>
       </div>
+
+      {/* Sync result */}
+      {syncResult && (
+        <div className="rounded-lg border border-brand-500/20 bg-brand-500/5 px-4 py-2.5">
+          <p className="text-sm text-brand-300">{syncResult}</p>
+        </div>
+      )}
 
       {/* Stats grid */}
       {stats && (
