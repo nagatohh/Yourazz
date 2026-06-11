@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, type MutableRefObject } from "react";
-import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
   PaymentElement,
@@ -11,8 +10,9 @@ import {
 } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
 import { Lock, Shield } from "lucide-react";
+import { getStripe } from "@/lib/stripe-client";
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+const stripePromise = getStripe();
 
 interface CheckoutProps {
   amount: number;

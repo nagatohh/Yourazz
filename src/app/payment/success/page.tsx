@@ -8,7 +8,7 @@ export default function PaymentSuccessPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] px-4">
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[300px] w-[400px] rounded-full bg-emerald-500/[0.05] blur-[100px]" />
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[300px] w-[400px] rounded-full bg-[radial-gradient(ellipse_closest-side,rgba(16,185,129,0.07),transparent)]" />
       </div>
       <Card className="relative max-w-md text-center p-8 border-white/[0.06]">
         <div className="mb-6">

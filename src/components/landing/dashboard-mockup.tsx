@@ -9,7 +9,7 @@ export function DashboardMockup() {
   return (
     <div className="relative mx-auto w-full max-w-4xl select-none" aria-hidden="true">
       {/* Halo */}
-      <div className="absolute -inset-x-8 -top-8 bottom-0 rounded-[40px] bg-brand-500/[0.07] blur-[60px] pointer-events-none" />
+      <div className="absolute -inset-x-8 -top-8 bottom-0 rounded-[40px] bg-[radial-gradient(ellipse_closest-side,rgba(220,38,38,0.10),transparent)] pointer-events-none" />
 
       {/* Fenêtre */}
       <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/[0.08] bg-[#101012] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.8)]">

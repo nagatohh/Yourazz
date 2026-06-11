@@ -10,7 +10,7 @@ export default function RegisterPage() {
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-[#0a0a0a] px-4 py-8">
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[300px] w-[300px] sm:h-[400px] sm:w-[500px] rounded-full bg-brand-500/[0.05] blur-[120px] sm:blur-[150px]" />
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[300px] w-[300px] sm:h-[400px] sm:w-[500px] rounded-full bg-[radial-gradient(ellipse_closest-side,rgba(220,38,38,0.07),transparent)]" />
       </div>
       <Card className="relative w-full max-w-md p-6 sm:p-8 border-white/[0.06] text-center">
         <div className="mb-6">

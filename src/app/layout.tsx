@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
+// Une seule police téléchargée (Inter). Le monospace utilise la pile système
+// (SF Mono, Consolas…) : zéro téléchargement, rendu natif sur chaque OS.
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", weight: ["400", "500", "700"], display: "swap" });
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -38,7 +39,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className="dark">
-      <body className={`${inter.variable} ${mono.variable} font-sans`}>
+      <body className={`${inter.variable} font-sans`}>
         {children}
         <Analytics />
       </body>

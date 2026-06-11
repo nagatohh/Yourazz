@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import { db } from "@/lib/db";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Lock, Shield, CreditCard, CheckCircle, Calendar, LinkIcon } from "lucide-react";
@@ -7,7 +8,9 @@ import { ApplePayLogo, GooglePayLogo, MastercardLogo, VisaLogo } from "@/compone
 
 export const dynamic = "force-dynamic";
 
-async function getLink(slug: string) {
+// cache() : generateMetadata et la page partagent la même requête DB
+// au lieu d'en faire deux identiques par visite.
+const getLink = cache(async (slug: string) => {
   try {
     const link = await db.paymentLink.findUnique({
       where: { slug },
@@ -30,7 +33,7 @@ async function getLink(slug: string) {
   } catch {
     return null;
   }
-}
+});
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -78,9 +81,17 @@ export default async function PublicPayPage({ params }: { params: Promise<{ slug
 
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-[#0a0a0a] px-4 py-6 sm:py-10">
-      {/* Halo de fond statique */}
+      {/* Connexions Stripe ouvertes dès le premier octet — React hisse ces
+          balises dans <head>. Le TLS handshake est déjà fait quand le payeur
+          arrive à l'étape carte. */}
+      <link rel="preconnect" href="https://js.stripe.com" />
+      <link rel="preconnect" href="https://api.stripe.com" />
+      <link rel="dns-prefetch" href="https://hooks.stripe.com" />
+
+      {/* Halo de fond statique — radial-gradient au lieu de blur() :
+          même rendu, zéro coût GPU sur mobile */}
       <div className="fixed inset-0 pointer-events-none" aria-hidden="true">
-        <div className="absolute top-1/4 left-1/2 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-brand-500/[0.05] blur-[120px]" />
+        <div className="absolute top-1/4 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(220,38,38,0.07),transparent_65%)]" />
       </div>
 
       <div className="relative w-full max-w-lg">

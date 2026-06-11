@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,22 @@ type Step = "info" | "consent" | "checkout";
 export function PayFlow({ link }: { link: PayLinkData }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("info");
+
+  // Préchargement pendant que le payeur remplit le formulaire : le chunk
+  // checkout + Stripe.js sont déjà en cache quand il arrive à l'étape carte.
+  // requestIdleCallback pour ne pas concurrencer le rendu initial.
+  useEffect(() => {
+    const preload = () => {
+      import("@/components/checkout/stripe-checkout").catch(() => {});
+      import("@/lib/stripe-client").then((m) => m.getStripe()).catch(() => {});
+    };
+    if ("requestIdleCallback" in window) {
+      const id = window.requestIdleCallback(preload, { timeout: 3000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const t = setTimeout(preload, 1500); // Safari iOS : pas de requestIdleCallback
+    return () => clearTimeout(t);
+  }, []);
   const [amount, setAmount] = useState("");
   const [payerName, setPayerName] = useState("");
   const [payerEmail, setPayerEmail] = useState("");

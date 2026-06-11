@@ -122,7 +122,7 @@ export default function LandingPage() {
       <section className="relative pt-28 sm:pt-40 pb-16 sm:pb-24">
         {/* Fond statique — aucun JS */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 h-[400px] w-[90%] sm:h-[600px] sm:w-[800px] rounded-full bg-brand-500/[0.08] blur-[120px] sm:blur-[180px]" />
+          <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 h-[400px] w-[90%] sm:h-[600px] sm:w-[800px] rounded-full bg-[radial-gradient(ellipse_closest-side,rgba(220,38,38,0.11),transparent)]" />
           <div className="absolute inset-0 bg-[linear-gradient(rgba(220,38,38,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(220,38,38,0.02)_1px,transparent_1px)] bg-[size:60px_60px] sm:bg-[size:80px_80px] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_30%,#000_30%,transparent_100%)]" />
         </div>
 
@@ -215,7 +215,7 @@ export default function LandingPage() {
       {/* ── Sécurité ─────────────────────────────────────────── */}
       <section id="security" className="relative py-16 sm:py-28">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] rounded-full bg-brand-500/[0.04] blur-[120px]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] rounded-full bg-[radial-gradient(circle_closest-side,rgba(220,38,38,0.06),transparent)]" />
         </div>
         <div className="relative mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-10 sm:gap-16 items-center">
@@ -307,7 +307,7 @@ export default function LandingPage() {
       {/* ── Chargeback Defender ──────────────────────────────── */}
       <section className="relative py-16 sm:py-28">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[400px] sm:w-[700px] h-[300px] rounded-full bg-brand-500/[0.05] blur-[140px]" />
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[400px] sm:w-[700px] h-[300px] rounded-full bg-[radial-gradient(ellipse_closest-side,rgba(220,38,38,0.07),transparent)]" />
         </div>
         <div className="relative mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
           <div className="text-center mb-12 sm:mb-16">
@@ -377,7 +377,7 @@ export default function LandingPage() {
       {/* ── CTA final ────────────────────────────────────────── */}
       <section className="relative py-20 sm:py-32">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] sm:w-[600px] h-[300px] sm:h-[400px] rounded-full bg-brand-500/[0.07] blur-[120px] sm:blur-[180px]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] sm:w-[600px] h-[300px] sm:h-[400px] rounded-full bg-[radial-gradient(ellipse_closest-side,rgba(220,38,38,0.10),transparent)]" />
         </div>
 
         <div className="relative mx-auto max-w-3xl px-5 sm:px-6 text-center">
