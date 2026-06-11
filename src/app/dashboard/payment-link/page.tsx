@@ -95,7 +95,7 @@ export default function PaymentLinkPage() {
             </div>
 
             {/* URL display */}
-            <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[#0a0a0f] p-3 sm:p-4">
+            <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[#141416] p-3 sm:p-4">
               <div className="flex-1 min-w-0 overflow-hidden">
                 <code className="block truncate text-xs sm:text-sm text-brand-400 font-mono">
                   {fullUrl}

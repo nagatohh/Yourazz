@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, type MutableRefObject } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -35,6 +35,31 @@ export function StripeCheckout(props: CheckoutProps) {
   const [transactionId, setTransactionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // submittedRef : paiement soumis (3DS possible) → ne jamais annuler.
+  // completedRef : paiement réussi → ne jamais annuler.
+  const submittedRef = useRef(false);
+  const completedRef = useRef(false);
+
+  // Si le payeur ferme la page (ou quitte l'étape de paiement) sans avoir payé,
+  // on libère l'intent côté serveur : le montant ne reste pas "en attente".
+  useEffect(() => {
+    if (!transactionId) return;
+
+    const abandon = () => {
+      if (submittedRef.current || completedRef.current) return;
+      try {
+        navigator.sendBeacon("/api/payments/abandon", JSON.stringify({ transactionId }));
+      } catch {
+        /* navigateur sans sendBeacon — la fenêtre de 30 min côté stats prend le relais */
+      }
+    };
+
+    window.addEventListener("pagehide", abandon);
+    return () => {
+      window.removeEventListener("pagehide", abandon);
+      abandon();
+    };
+  }, [transactionId]);
 
   useEffect(() => {
     const idempotencyKey = crypto.randomUUID();
@@ -101,8 +126,8 @@ export function StripeCheckout(props: CheckoutProps) {
         appearance: {
           theme: "night",
           variables: {
-            colorPrimary: "#e11d48",
-            colorBackground: "#0a0a0f",
+            colorPrimary: "#dc2626",
+            colorBackground: "#141416",
             colorText: "#ffffff",
             colorDanger: "#ef4444",
             fontFamily: "Inter, system-ui, sans-serif",
@@ -115,16 +140,16 @@ export function StripeCheckout(props: CheckoutProps) {
               backgroundColor: "rgba(255,255,255,0.03)",
             },
             ".Input:focus": {
-              border: "1px solid rgba(225,29,72,0.5)",
-              boxShadow: "0 0 0 3px rgba(225,29,72,0.1)",
+              border: "1px solid rgba(220,38,38,0.5)",
+              boxShadow: "0 0 0 3px rgba(220,38,38,0.1)",
             },
             ".Tab": {
               border: "1px solid rgba(255,255,255,0.06)",
               backgroundColor: "rgba(255,255,255,0.02)",
             },
             ".Tab--selected": {
-              border: "1px solid rgba(225,29,72,0.4)",
-              backgroundColor: "rgba(225,29,72,0.08)",
+              border: "1px solid rgba(220,38,38,0.4)",
+              backgroundColor: "rgba(220,38,38,0.08)",
             },
           },
         },
@@ -136,6 +161,8 @@ export function StripeCheckout(props: CheckoutProps) {
         transactionId={transactionId!}
         onSuccess={props.onSuccess}
         onError={props.onError}
+        submittedRef={submittedRef}
+        completedRef={completedRef}
       />
     </Elements>
   );
@@ -146,9 +173,11 @@ interface CheckoutFormProps {
   transactionId: string;
   onSuccess: (transactionId: string) => void;
   onError: (message: string) => void;
+  submittedRef: MutableRefObject<boolean>;
+  completedRef: MutableRefObject<boolean>;
 }
 
-function CheckoutForm({ amount, transactionId, onSuccess, onError }: CheckoutFormProps) {
+function CheckoutForm({ amount, transactionId, onSuccess, onError, submittedRef, completedRef }: CheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -169,6 +198,8 @@ function CheckoutForm({ amount, transactionId, onSuccess, onError }: CheckoutFor
       return;
     }
 
+    submittedRef.current = true;
+
     const { error: confirmError } = await stripe.confirmPayment({
       elements,
       confirmParams: {
@@ -178,10 +209,13 @@ function CheckoutForm({ amount, transactionId, onSuccess, onError }: CheckoutFor
     });
 
     if (confirmError) {
-      setError(confirmError.message || "Paiement refuse");
-      onError(confirmError.message || "Paiement refuse");
+      // Paiement refusé → la page reste annulable si le payeur la ferme
+      submittedRef.current = false;
+      setError(confirmError.message || "Paiement refusé");
+      onError(confirmError.message || "Paiement refusé");
       setLoading(false);
     } else {
+      completedRef.current = true;
       onSuccess(transactionId);
     }
   };
@@ -192,6 +226,8 @@ function CheckoutForm({ amount, transactionId, onSuccess, onError }: CheckoutFor
       return;
     }
 
+    submittedRef.current = true;
+
     const { error: confirmError } = await stripe.confirmPayment({
       elements,
       confirmParams: {
@@ -201,10 +237,12 @@ function CheckoutForm({ amount, transactionId, onSuccess, onError }: CheckoutFor
     });
 
     if (confirmError) {
+      submittedRef.current = false;
       event.complete("fail");
-      setError(confirmError.message || "Paiement refuse");
-      onError(confirmError.message || "Paiement refuse");
+      setError(confirmError.message || "Paiement refusé");
+      onError(confirmError.message || "Paiement refusé");
     } else {
+      completedRef.current = true;
       event.complete("success");
       onSuccess(transactionId);
     }
@@ -239,7 +277,7 @@ function CheckoutForm({ amount, transactionId, onSuccess, onError }: CheckoutFor
             <div className="w-full border-t border-white/[0.06]" />
           </div>
           <div className="relative flex justify-center text-xs">
-            <span className="bg-[#0a0a0f] px-3 text-zinc-500">ou payer par carte</span>
+            <span className="bg-[#141416] px-3 text-zinc-500">ou payer par carte</span>
           </div>
         </div>
       )}

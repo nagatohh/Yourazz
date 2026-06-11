@@ -6,7 +6,9 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download, Search, Filter, ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { Download, Search, ArrowDownRight, ArrowUpRight, Inbox } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface Transaction {
   id: string;
@@ -23,13 +25,13 @@ interface Transaction {
 }
 
 const statusMap: Record<string, { label: string; variant: "success" | "warning" | "error" | "info" }> = {
-  SUCCEEDED: { label: "Reussi", variant: "success" },
+  SUCCEEDED: { label: "Réussi", variant: "success" },
   PENDING: { label: "En attente", variant: "warning" },
   PROCESSING: { label: "En cours", variant: "info" },
-  AUTHORIZED: { label: "Autorise", variant: "info" },
-  FAILED: { label: "Echoue", variant: "error" },
-  CANCELLED: { label: "Annule", variant: "error" },
-  REFUNDED: { label: "Rembourse", variant: "warning" },
+  AUTHORIZED: { label: "Autorisé", variant: "info" },
+  FAILED: { label: "Échoué", variant: "error" },
+  CANCELLED: { label: "Annulé", variant: "error" },
+  REFUNDED: { label: "Remboursé", variant: "warning" },
 };
 
 const methodLabels: Record<string, string> = {
@@ -140,9 +142,9 @@ export default function TransactionsPage() {
             className="h-10 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 text-sm text-zinc-300 focus:border-brand-500/50 focus:outline-none"
           >
             <option value="ALL">Tous statuts</option>
-            <option value="SUCCEEDED">Reussi</option>
+            <option value="SUCCEEDED">Réussi</option>
             <option value="PENDING">En attente</option>
-            <option value="FAILED">Echoue</option>
+            <option value="FAILED">Échoué</option>
           </select>
           <select
             value={typeFilter}
@@ -158,21 +160,37 @@ export default function TransactionsPage() {
 
       <Card className="overflow-hidden p-0">
         {loading ? (
-          <div className="flex h-32 items-center justify-center">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+          <div className="divide-y divide-white/[0.04]">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between gap-3 px-4 sm:px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-9 w-9 rounded-xl" />
+                  <div className="space-y-1.5">
+                    <Skeleton className="h-3.5 w-32" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                </div>
+                <Skeleton className="h-4 w-16" />
+              </div>
+            ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="p-8 text-center">
-            <p className="text-zinc-400">Aucune transaction trouvee</p>
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="mt-2 text-sm text-brand-400 hover:text-brand-300"
-              >
-                Effacer la recherche
-              </button>
-            )}
-          </div>
+          <EmptyState
+            icon={Inbox}
+            title={search || statusFilter !== "ALL" || typeFilter !== "ALL" ? "Aucun résultat" : "Aucune transaction"}
+            description={
+              search
+                ? "Aucune transaction ne correspond à votre recherche."
+                : "Vos paiements reçus et retraits apparaîtront ici."
+            }
+            action={
+              search ? (
+                <Button variant="outline" size="sm" onClick={() => setSearch("")}>
+                  Effacer la recherche
+                </Button>
+              ) : undefined
+            }
+          />
         ) : (
           <>
             {/* Mobile card list */}
@@ -229,7 +247,7 @@ export default function TransactionsPage() {
                   <tr className="border-b border-white/[0.06] text-left text-xs text-zinc-500">
                     <th className="px-6 py-3.5 font-medium">Date</th>
                     <th className="px-6 py-3.5 font-medium">Type</th>
-                    <th className="px-6 py-3.5 font-medium">Methode</th>
+                    <th className="px-6 py-3.5 font-medium">Méthode</th>
                     <th className="px-6 py-3.5 font-medium">De</th>
                     <th className="px-6 py-3.5 font-medium text-right">Montant</th>
                     <th className="px-6 py-3.5 font-medium text-right">Frais</th>
@@ -265,7 +283,7 @@ export default function TransactionsPage() {
                             )}
                           </div>
                           <span className="text-zinc-300">
-                            {tx.type === "PAYIN" ? "Paiement recu" : "Retrait"}
+                            {tx.type === "PAYIN" ? "Paiement reçu" : "Retrait"}
                           </span>
                         </div>
                       </td>

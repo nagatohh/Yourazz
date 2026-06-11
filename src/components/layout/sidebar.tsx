@@ -20,6 +20,8 @@ import {
   Menu,
   X,
   Activity,
+  ShieldAlert,
+  Webhook,
 } from "lucide-react";
 
 const navItems = [
@@ -35,8 +37,10 @@ const navItems = [
 const adminItems = [
   { href: "/admin", label: "Vue d'ensemble", icon: Users },
   { href: "/admin/payments", label: "Paiements", icon: CreditCard },
+  { href: "/admin/chargeback-defender", label: "Chargeback Defender", icon: ShieldAlert },
   { href: "/admin/invitations", label: "Invitations", icon: Mail },
-  { href: "/admin/security", label: "Securite", icon: Shield },
+  { href: "/admin/security", label: "Sécurité", icon: Shield },
+  { href: "/admin/webhooks", label: "Webhooks", icon: Webhook },
   { href: "/admin/guardian", label: "Guardian", icon: Activity },
 ];
 
@@ -139,7 +143,7 @@ export function Sidebar() {
   return (
     <>
       {/* Mobile header */}
-      <div className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between border-b border-white/[0.04] bg-[#050509]/95 backdrop-blur-xl px-4 lg:hidden">
+      <div className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between border-b border-white/[0.04] bg-[#101012]/95 backdrop-blur-xl px-4 lg:hidden">
         <Link href="/dashboard" className="flex items-center">
           <Logo size="sm" />
         </Link>
@@ -162,7 +166,7 @@ export function Sidebar() {
 
       {/* Mobile drawer */}
       <aside
-        className={`fixed top-0 left-0 z-50 flex h-screen w-72 flex-col border-r border-white/[0.04] bg-[#050509] transition-transform duration-300 ease-out lg:hidden ${
+        className={`fixed top-0 left-0 z-50 flex h-screen w-72 flex-col border-r border-white/[0.04] bg-[#101012] transition-transform duration-300 ease-out lg:hidden ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -180,7 +184,7 @@ export function Sidebar() {
       </aside>
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex fixed left-0 top-0 z-40 h-screen w-64 flex-col border-r border-white/[0.04] bg-[#050509]">
+      <aside className="hidden lg:flex fixed left-0 top-0 z-40 h-screen w-64 flex-col border-r border-white/[0.04] bg-[#101012]">
         <div className="flex h-16 items-center border-b border-white/[0.04] px-5">
           <Link href="/dashboard" className="flex items-center">
             <Logo size="sm" />

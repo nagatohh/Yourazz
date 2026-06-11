@@ -27,7 +27,7 @@ export default function RevenueChart({ data }: RevenueChartProps) {
             <div key={d.name} className="flex-1 flex flex-col items-center gap-1 group relative">
               {/* Tooltip on hover */}
               <div className="absolute bottom-full mb-2 hidden group-hover:block z-10">
-                <div className="rounded-lg bg-[#0f0f14] border border-white/[0.08] px-2.5 py-1.5 text-[11px] text-white whitespace-nowrap shadow-xl">
+                <div className="rounded-lg bg-[#171717] border border-white/[0.08] px-2.5 py-1.5 text-[11px] text-white whitespace-nowrap shadow-xl">
                   {fmt(d.revenue)}
                 </div>
               </div>

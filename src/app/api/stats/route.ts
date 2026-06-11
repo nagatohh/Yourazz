@@ -13,9 +13,17 @@ export async function GET() {
   const startOfWeek = new Date(startOfDay);
   startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  // Un paiement n'est "en attente" que si sa page de checkout est encore ouverte :
+  // les intents abandonnés sont annulés à la fermeture de la page, et ceux qui
+  // échappent au signal (crash navigateur) expirent au bout de 30 minutes.
+  const pendingWindow = new Date(now.getTime() - 30 * 60 * 1000);
 
-  const [wallet, todayAgg, weekTx, monthTx, totalCount, succeededCount, payoutAgg, recentTx] = await Promise.all([
+  const [wallet, pendingAgg, todayAgg, weekTx, monthTx, totalCount, succeededCount, payoutAgg, recentTx] = await Promise.all([
     db.wallet.findUnique({ where: { userId: s.userId } }),
+    db.transaction.aggregate({
+      where: { userId: s.userId, type: "PAYIN", status: "PENDING", createdAt: { gte: pendingWindow } },
+      _sum: { amount: true },
+    }),
     db.transaction.aggregate({
       where: { userId: s.userId, type: "PAYIN", status: "SUCCEEDED", createdAt: { gte: startOfDay } },
       _sum: { amount: true },
@@ -55,7 +63,7 @@ export async function GET() {
 
   return NextResponse.json({
     availableBalance: wallet?.availableBalance || 0,
-    pendingBalance: wallet?.pendingBalance || 0,
+    pendingBalance: pendingAgg._sum.amount || 0,
     todayRevenue: todayAgg._sum.amount || 0,
     weekRevenue,
     monthRevenue,

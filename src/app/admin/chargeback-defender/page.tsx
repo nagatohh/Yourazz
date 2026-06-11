@@ -10,7 +10,9 @@ import {
   FileWarning,
   Activity,
   Eye,
+  Download,
 } from "lucide-react";
+import { StatCardSkeleton, CardSkeleton } from "@/components/ui/skeleton";
 
 interface Stats {
   totalEvidences: number;
@@ -119,10 +121,28 @@ export default function ChargebackDefenderPage() {
   const fmt = (n: number) =>
     new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(n / 100);
 
+  const exportEvidence = () => {
+    if (!selectedEvidence) return;
+    const blob = new Blob([JSON.stringify(selectedEvidence, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `yourazz-dossier-preuve-${selectedEvidence.stripe?.paymentIntentId || Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (loading && !stats) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+        </div>
+        <CardSkeleton />
+        <CardSkeleton />
       </div>
     );
   }
@@ -324,12 +344,22 @@ export default function ChargebackDefenderPage() {
           <Card className="max-w-lg w-full max-h-[80vh] overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-4">
               <CardTitle className="text-sm">Dossier de preuves</CardTitle>
-              <button
-                onClick={() => setSelectedEvidence(null)}
-                className="text-zinc-500 hover:text-white text-lg"
-              >
-                &times;
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={exportEvidence}
+                  className="flex items-center gap-1.5 rounded-lg border border-brand-500/20 bg-brand-500/[0.06] px-2.5 py-1.5 text-[11px] font-medium text-brand-300 hover:bg-brand-500/[0.12] transition-colors"
+                >
+                  <Download className="h-3 w-3" />
+                  Exporter
+                </button>
+                <button
+                  onClick={() => setSelectedEvidence(null)}
+                  className="text-zinc-500 hover:text-white text-lg"
+                  aria-label="Fermer"
+                >
+                  &times;
+                </button>
+              </div>
             </div>
 
             <div className="space-y-4 text-xs">

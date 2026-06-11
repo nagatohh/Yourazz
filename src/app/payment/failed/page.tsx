@@ -6,7 +6,7 @@ import { Logo } from "@/components/ui/logo";
 
 export default function PaymentFailedPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#030308] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] px-4">
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[300px] w-[400px] rounded-full bg-red-500/[0.05] blur-[100px]" />
       </div>

@@ -9,7 +9,7 @@ function getResend() {
 
 const FROM = "YouRazz <noreply@yourazz.xyz>";
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://yourazz.xyz";
-const LOGO_HTML = `<span style="font-size:24px;font-weight:900;color:#ffffff;letter-spacing:-0.5px">You<span style="background:linear-gradient(135deg,#fb7185,#e11d48);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Razz</span></span><br/><span style="font-size:10px;font-weight:500;letter-spacing:3px;color:#71717a;text-transform:uppercase">Official 公式</span>`;
+const LOGO_HTML = `<span style="font-size:24px;font-weight:900;color:#ffffff;letter-spacing:-0.5px">You<span style="background:linear-gradient(135deg,#f87171,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Razz</span></span><br/><span style="font-size:10px;font-weight:500;letter-spacing:3px;color:#71717a;text-transform:uppercase">Official 公式</span>`;
 
 async function logEmail(toEmail: string, subject: string, template: string, result: { id?: string; error?: string }) {
   try {
@@ -182,14 +182,14 @@ ${LOGO_HTML}
 
 <!-- Red accent line -->
 <tr><td align="center" style="padding:0 0 32px">
-<div style="width:60px;height:2px;background:linear-gradient(90deg,#e11d48,#be123c);border-radius:2px"></div>
+<div style="width:60px;height:2px;background:linear-gradient(90deg,#dc2626,#b91c1c);border-radius:2px"></div>
 </td></tr>
 
 <!-- Main Card -->
 <tr><td>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0a0a12;border:1px solid rgba(225,29,72,0.1);border-radius:20px;overflow:hidden;box-shadow:0 0 60px -20px rgba(225,29,72,0.15)">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#141416;border:1px solid rgba(220,38,38,0.1);border-radius:20px;overflow:hidden;box-shadow:0 0 60px -20px rgba(220,38,38,0.15)">
 <!-- Top glow border -->
-<tr><td style="height:2px;background:linear-gradient(90deg,transparent,#e11d48,transparent)"></td></tr>
+<tr><td style="height:2px;background:linear-gradient(90deg,transparent,#dc2626,transparent)"></td></tr>
 <tr><td style="padding:44px 40px 40px" class="content">
 ${content}
 </td></tr>
@@ -200,7 +200,7 @@ ${content}
 <tr><td style="padding:32px 40px;text-align:center" class="footer">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 <tr><td align="center" style="padding-bottom:16px">
-<div style="width:30px;height:1px;background:linear-gradient(90deg,transparent,rgba(225,29,72,0.3),transparent)"></div>
+<div style="width:30px;height:1px;background:linear-gradient(90deg,transparent,rgba(220,38,38,0.3),transparent)"></div>
 </td></tr>
 <tr><td align="center">
 <p style="margin:0 0 6px;font-size:12px;color:#52525b;line-height:1.5;font-weight:500">
@@ -234,15 +234,15 @@ Plateforme de paiement premium sécurisée
 
 function ctaButton(text: string, url: string) {
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto">
-<tr><td align="center" style="border-radius:14px;background:linear-gradient(135deg,#e11d48 0%,#9f1239 100%)" bgcolor="#e11d48">
+<tr><td align="center" style="border-radius:14px;background:linear-gradient(135deg,#dc2626 0%,#991b1b 100%)" bgcolor="#dc2626">
 <!--[if mso]>
-<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${url}" style="height:54px;v-text-anchor:middle;width:260px" arcsize="26%" fillcolor="#e11d48" stroke="f">
+<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${url}" style="height:54px;v-text-anchor:middle;width:260px" arcsize="26%" fillcolor="#dc2626" stroke="f">
 <w:anchorlock/>
 <center style="color:#ffffff;font-family:sans-serif;font-size:15px;font-weight:bold">${text}</center>
 </v:roundrect>
 <![endif]-->
 <!--[if !mso]><!-->
-<a href="${url}" target="_blank" style="display:inline-block;padding:17px 40px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:14px;background:linear-gradient(135deg,#e11d48 0%,#9f1239 100%);box-shadow:0 8px 24px rgba(225,29,72,0.35),0 0 0 1px rgba(225,29,72,0.15);letter-spacing:-0.2px" class="btn">${text}</a>
+<a href="${url}" target="_blank" style="display:inline-block;padding:17px 40px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:14px;background:linear-gradient(135deg,#dc2626 0%,#991b1b 100%);box-shadow:0 8px 24px rgba(220,38,38,0.35),0 0 0 1px rgba(220,38,38,0.15);letter-spacing:-0.2px" class="btn">${text}</a>
 <!--<![endif]-->
 </td></tr>
 </table>`;
@@ -250,17 +250,17 @@ function ctaButton(text: string, url: string) {
 
 function divider() {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-<tr><td style="padding:28px 0"><div style="height:1px;background:linear-gradient(90deg,transparent 0%,rgba(225,29,72,0.12) 50%,transparent 100%)"></div></td></tr>
+<tr><td style="padding:28px 0"><div style="height:1px;background:linear-gradient(90deg,transparent 0%,rgba(220,38,38,0.12) 50%,transparent 100%)"></div></td></tr>
 </table>`;
 }
 
 function securityNotice(text: string) {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:28px">
-<tr><td style="background:rgba(225,29,72,0.03);border:1px solid rgba(225,29,72,0.08);border-radius:14px;padding:18px 22px">
+<tr><td style="background:rgba(220,38,38,0.03);border:1px solid rgba(220,38,38,0.08);border-radius:14px;padding:18px 22px">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td style="vertical-align:top;padding-right:14px">
-<div style="width:24px;height:24px;background:rgba(225,29,72,0.1);border-radius:8px;text-align:center;line-height:24px">
+<div style="width:24px;height:24px;background:rgba(220,38,38,0.1);border-radius:8px;text-align:center;line-height:24px">
 <span style="font-size:12px;line-height:24px">🔒</span>
 </div>
 </td>
@@ -275,7 +275,7 @@ function securityNotice(text: string) {
 
 function premiumBadge(text: string) {
   return `<div style="text-align:center;margin:0 0 24px">
-<span style="display:inline-block;padding:6px 14px;background:rgba(225,29,72,0.08);border:1px solid rgba(225,29,72,0.15);border-radius:20px;font-size:11px;font-weight:600;color:#fb7185;letter-spacing:0.5px;text-transform:uppercase">${text}</span>
+<span style="display:inline-block;padding:6px 14px;background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.15);border-radius:20px;font-size:11px;font-weight:600;color:#f87171;letter-spacing:0.5px;text-transform:uppercase">${text}</span>
 </div>`;
 }
 
@@ -310,7 +310,7 @@ ${["Connexion sécurisée avec chiffrement de bout en bout", "Votre mot de passe
 <td style="padding:6px 0">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td style="padding-right:12px;vertical-align:middle"><span style="display:inline-block;width:18px;height:18px;background:rgba(225,29,72,0.1);border-radius:50%;text-align:center;line-height:18px;font-size:10px;color:#e11d48">✓</span></td>
+<td style="padding-right:12px;vertical-align:middle"><span style="display:inline-block;width:18px;height:18px;background:rgba(220,38,38,0.1);border-radius:50%;text-align:center;line-height:18px;font-size:10px;color:#dc2626">✓</span></td>
 <td style="font-size:13px;color:#71717a;line-height:1.5">${t}</td>
 </tr>
 </table>
@@ -389,7 +389,7 @@ Votre paiement a été traité avec succès
 </p>
 
 <!-- Amount display premium -->
-<div style="text-align:center;margin:0 0 32px;padding:28px;background:linear-gradient(135deg,rgba(225,29,72,0.05),rgba(225,29,72,0.02));border:1px solid rgba(225,29,72,0.1);border-radius:18px">
+<div style="text-align:center;margin:0 0 32px;padding:28px;background:linear-gradient(135deg,rgba(220,38,38,0.05),rgba(220,38,38,0.02));border:1px solid rgba(220,38,38,0.1);border-radius:18px">
 <p style="margin:0 0 6px;font-size:11px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:1px">Montant payé</p>
 <p style="margin:0;font-size:40px;font-weight:900;color:#ffffff;letter-spacing:-1.5px" class="amount-display">${amountFmt}</p>
 </div>
@@ -537,7 +537,7 @@ ${divider()}
 <td style="padding:6px 0">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td style="padding-right:12px;vertical-align:middle"><span style="display:inline-block;width:18px;height:18px;background:rgba(225,29,72,0.1);border-radius:50%;text-align:center;line-height:18px;font-size:10px;color:#e11d48">!</span></td>
+<td style="padding-right:12px;vertical-align:middle"><span style="display:inline-block;width:18px;height:18px;background:rgba(220,38,38,0.1);border-radius:50%;text-align:center;line-height:18px;font-size:10px;color:#dc2626">!</span></td>
 <td style="font-size:13px;color:#71717a;line-height:1.5">Ce lien expire dans <strong style="color:#e4e4e7">1 heure</strong></td>
 </tr>
 </table>
@@ -547,7 +547,7 @@ ${divider()}
 <td style="padding:6px 0">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td style="padding-right:12px;vertical-align:middle"><span style="display:inline-block;width:18px;height:18px;background:rgba(225,29,72,0.1);border-radius:50%;text-align:center;line-height:18px;font-size:10px;color:#e11d48">!</span></td>
+<td style="padding-right:12px;vertical-align:middle"><span style="display:inline-block;width:18px;height:18px;background:rgba(220,38,38,0.1);border-radius:50%;text-align:center;line-height:18px;font-size:10px;color:#dc2626">!</span></td>
 <td style="font-size:13px;color:#71717a;line-height:1.5">Utilisable une seule fois</td>
 </tr>
 </table>

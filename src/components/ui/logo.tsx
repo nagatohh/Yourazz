@@ -21,7 +21,7 @@ export function Logo({ size = "md", showTagline = false, className = "" }: LogoP
       </span>
       {showTagline && (
         <span className={`${s.tagline} font-medium uppercase tracking-[0.3em] text-zinc-500 mt-1`}>
-          Official 公式
+          Paiements sécurisés
         </span>
       )}
     </div>

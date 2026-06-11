@@ -36,7 +36,7 @@ function InviteForm() {
 
   if (!token) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#030308] px-4">
+      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] px-4">
         <Card className="max-w-md text-center p-8 border-white/[0.06]">
           <h1 className="text-xl font-bold text-white">Lien invalide</h1>
           <p className="mt-2 text-sm text-zinc-500">Ce lien d&apos;invitation est invalide ou manquant.</p>
@@ -46,7 +46,7 @@ function InviteForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#030308] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] px-4">
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[400px] w-[500px] rounded-full bg-brand-500/[0.05] blur-[150px]" />
       </div>
@@ -75,7 +75,7 @@ function InviteForm() {
 
 export default function InvitePage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#030308]"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div>}>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#0a0a0a]"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" /></div>}>
       <InviteForm />
     </Suspense>
   );
