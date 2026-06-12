@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton, StatCardSkeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import RevenueChart from "@/components/dashboard/revenue-chart";
+import MethodBreakdown from "@/components/dashboard/method-breakdown";
 
 interface Stats {
   availableBalance: number;
@@ -34,6 +35,10 @@ interface Stats {
   totalWithdrawn: number;
   totalPayments: number;
   successRate: number;
+  weekTrend: number | null;
+  monthTrend: number | null;
+  avgPayment: number;
+  methodBreakdown: { method: string; count: number; amount: number }[];
   weeklyData: { name: string; revenue: number }[];
   monthlyData: { name: string; revenue: number }[];
   recentTransactions: {
@@ -61,6 +66,10 @@ const EMPTY_STATS: Stats = {
   totalWithdrawn: 0,
   totalPayments: 0,
   successRate: 0,
+  weekTrend: null,
+  monthTrend: null,
+  avgPayment: 0,
+  methodBreakdown: [],
   weeklyData: [],
   monthlyData: [],
   recentTransactions: [],
@@ -137,6 +146,11 @@ export default function DashboardPage() {
   if (!stats) return <DashboardSkeleton />;
 
   const chartData = chartTab === "week" ? stats.weeklyData : stats.monthlyData;
+
+  const trendLabel = (t: number | null, period: string) =>
+    t === null ? undefined : `${t >= 0 ? "+" : ""}${t}% vs ${period}`;
+  const trendType = (t: number | null): "positive" | "negative" | "neutral" =>
+    t === null || t === 0 ? "neutral" : t > 0 ? "positive" : "negative";
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -236,8 +250,20 @@ export default function DashboardPage() {
       {/* Grille de stats */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard title="Aujourd'hui" value={fmt(stats.todayRevenue)} icon={DollarSign} />
-        <StatCard title="Cette semaine" value={fmt(stats.weekRevenue)} icon={TrendingUp} />
-        <StatCard title="Ce mois" value={fmt(stats.monthRevenue)} icon={CreditCard} />
+        <StatCard
+          title="Cette semaine"
+          value={fmt(stats.weekRevenue)}
+          icon={TrendingUp}
+          change={trendLabel(stats.weekTrend, "sem. préc.")}
+          changeType={trendType(stats.weekTrend)}
+        />
+        <StatCard
+          title="Ce mois"
+          value={fmt(stats.monthRevenue)}
+          icon={CreditCard}
+          change={trendLabel(stats.monthTrend, "mois préc.")}
+          changeType={trendType(stats.monthTrend)}
+        />
         <StatCard
           title="Taux de succès"
           value={`${stats.successRate}%`}
@@ -379,8 +405,8 @@ export default function DashboardPage() {
         <Card className="p-4 sm:p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-zinc-500">Volume ce mois</p>
-              <p className="text-lg font-bold text-white mt-1">{fmt(stats.monthRevenue)}</p>
+              <p className="text-xs text-zinc-500">Panier moyen ce mois</p>
+              <p className="text-lg font-bold text-white mt-1">{fmt(stats.avgPayment)}</p>
             </div>
             <div className="rounded-xl bg-brand-500/10 p-2.5">
               <TrendingUp className="h-5 w-5 text-brand-400" />
@@ -388,6 +414,14 @@ export default function DashboardPage() {
           </div>
         </Card>
       </div>
+
+      {/* Répartition par méthode de paiement */}
+      <Card className="p-4 sm:p-6">
+        <CardTitle className="text-base sm:text-lg mb-4 sm:mb-6">
+          Méthodes de paiement
+        </CardTitle>
+        <MethodBreakdown data={stats.methodBreakdown} />
+      </Card>
     </div>
   );
 }

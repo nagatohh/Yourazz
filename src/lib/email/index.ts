@@ -7,9 +7,9 @@ function getResend() {
   return _resend;
 }
 
-const FROM = "YouRazz <noreply@yourazz.xyz>";
+const FROM = process.env.EMAIL_FROM || "Yourazz <noreply@yourazz.xyz>";
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://yourazz.xyz";
-const LOGO_HTML = `<span style="font-size:24px;font-weight:900;color:#ffffff;letter-spacing:-0.5px">You<span style="background:linear-gradient(135deg,#f87171,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Razz</span></span><br/><span style="font-size:10px;font-weight:500;letter-spacing:3px;color:#71717a;text-transform:uppercase">Official 公式</span>`;
+const LOGO_HTML = `<span style="font-size:24px;font-weight:900;color:#ffffff;letter-spacing:-0.5px">You<span style="background:linear-gradient(135deg,#f87171,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">razz</span></span><br/><span style="font-size:10px;font-weight:500;letter-spacing:3px;color:#71717a;text-transform:uppercase">Paiements sécurisés</span>`;
 
 async function logEmail(toEmail: string, subject: string, template: string, result: { id?: string; error?: string }) {
   try {
@@ -41,7 +41,7 @@ async function sendWithRetry(params: { from: string; to: string; subject: string
 
 export async function sendInvitationEmail(email: string, token: string, inviterName: string) {
   const url = `${BASE_URL}/register/invite?token=${token}`;
-  const subject = "🔑 Votre accès exclusif YouRazz vous attend";
+  const subject = "🔑 Votre accès exclusif Yourazz vous attend";
 
   const { data, error } = await sendWithRetry({
     from: FROM,
@@ -56,7 +56,7 @@ export async function sendInvitationEmail(email: string, token: string, inviterN
 
 export async function sendVerificationEmail(email: string, token: string, name?: string) {
   const url = `${BASE_URL}/verify-email?token=${token}`;
-  const subject = "Confirmez votre adresse email – YouRazz";
+  const subject = "Confirmez votre adresse email – Yourazz";
 
   const { data, error } = await sendWithRetry({
     from: FROM,
@@ -92,6 +92,31 @@ export async function sendPaymentReceipt(email: string, receipt: {
   return { success: !error };
 }
 
+export async function sendPaymentReceivedNotification(email: string, notif: {
+  amount: number;
+  currency: string;
+  transactionId: string;
+  payerName?: string;
+  payerEmail?: string;
+  paymentMethod?: string;
+  date: Date;
+}) {
+  const amountFmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: notif.currency }).format(notif.amount / 100);
+  const orderId = notif.transactionId.slice(-8).toUpperCase();
+  // L'orderId dans le sujet sert de clé de déduplication côté webhook (lookup EmailLog)
+  const subject = `💰 ${amountFmt} reçu – Réf #${orderId}`;
+
+  const { data, error } = await sendWithRetry({
+    from: FROM,
+    to: email,
+    subject,
+    html: paymentReceivedTemplate(notif),
+  });
+
+  await logEmail(email, subject, "payment_received", { id: data?.id, error: error?.message });
+  return { success: !error };
+}
+
 export async function sendPaymentFailedEmail(email: string, details: {
   amount: number;
   currency: string;
@@ -115,7 +140,7 @@ export async function sendPaymentFailedEmail(email: string, details: {
 
 export async function sendPasswordResetEmail(email: string, token: string, name?: string) {
   const url = `${BASE_URL}/reset-password?token=${token}`;
-  const subject = "Réinitialisation de votre mot de passe – YouRazz";
+  const subject = "Réinitialisation de votre mot de passe – Yourazz";
 
   const { data, error } = await sendWithRetry({
     from: FROM,
@@ -141,7 +166,7 @@ function baseLayout(content: string, preheader?: string) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="color-scheme" content="dark" />
 <meta name="supported-color-schemes" content="dark" />
-<title>YouRazz Official</title>
+<title>Yourazz</title>
 <!--[if mso]>
 <noscript>
 <xml>
@@ -204,7 +229,7 @@ ${content}
 </td></tr>
 <tr><td align="center">
 <p style="margin:0 0 6px;font-size:12px;color:#52525b;line-height:1.5;font-weight:500">
-YouRazz Official 公式
+Yourazz
 </p>
 <p style="margin:0 0 12px;font-size:11px;color:#3f3f46;line-height:1.5">
 Plateforme de paiement premium sécurisée
@@ -219,7 +244,7 @@ Plateforme de paiement premium sécurisée
 </tr>
 </table>
 <p style="margin:16px 0 0;font-size:10px;color:#1c1c1e">
-© ${new Date().getFullYear()} YouRazz Official. Tous droits réservés.
+© ${new Date().getFullYear()} Yourazz. Tous droits réservés.
 </p>
 </td></tr>
 </table>
@@ -288,7 +313,7 @@ function invitationTemplate(email: string, url: string, inviterName: string) {
 ${premiumBadge("Accès exclusif")}
 
 <h1 style="margin:0 0 10px;font-size:28px;font-weight:800;color:#ffffff;text-align:center;letter-spacing:-0.5px;line-height:1.2">
-Bienvenue dans l'univers<br/>YouRazz
+Bienvenue dans l'univers<br/>Yourazz
 </h1>
 <p style="margin:0 0 32px;font-size:14px;color:#a1a1aa;text-align:center;line-height:1.6">
 Votre accès privilégié a été approuvé
@@ -319,7 +344,7 @@ ${["Connexion sécurisée avec chiffrement de bout en bout", "Votre mot de passe
 </table>
 
 ${securityNotice("Si vous n'avez pas demandé cette invitation, vous pouvez ignorer cet email en toute sécurité. Aucune action ne sera effectuée sans votre consentement.")}
-`, "Votre accès exclusif à YouRazz a été approuvé. Créez votre compte maintenant.");
+`, "Votre accès exclusif à Yourazz a été approuvé. Créez votre compte maintenant.");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -341,13 +366,13 @@ Dernière étape pour activer votre accès premium
 Bonjour <strong style="color:#ffffff">${name}</strong>,
 </p>
 <p style="margin:0 0 36px;font-size:14px;color:#a1a1aa;line-height:1.7;text-align:center">
-Confirmez votre adresse email pour activer votre compte YouRazz et débloquer toutes les fonctionnalités de votre espace privé.
+Confirmez votre adresse email pour activer votre compte Yourazz et débloquer toutes les fonctionnalités de votre espace privé.
 </p>
 
 ${ctaButton("Confirmer mon email", url)}
 
-${securityNotice("Ce lien de confirmation expire dans 24 heures. Si vous n'avez pas créé de compte sur YouRazz, ignorez simplement cet email.")}
-`, "Confirmez votre adresse email pour activer votre compte YouRazz premium.");
+${securityNotice("Ce lien de confirmation expire dans 24 heures. Si vous n'avez pas créé de compte sur Yourazz, ignorez simplement cet email.")}
+`, "Confirmez votre adresse email pour activer votre compte Yourazz premium.");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -430,6 +455,80 @@ ${ctaButton("Voir mes transactions", orderUrl)}
 
 ${securityNotice("Ce reçu confirme que votre paiement a été traité et vérifié par notre système sécurisé. Conservez cet email comme justificatif de paiement.")}
 `, `Paiement de ${amountFmt} confirmé – Commande #${orderId}`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 3bis. PAYMENT RECEIVED NOTIFICATION (vendeur)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function paymentReceivedTemplate(notif: { amount: number; currency: string; transactionId: string; payerName?: string; payerEmail?: string; paymentMethod?: string; date: Date }) {
+  const amountFmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: notif.currency }).format(notif.amount / 100);
+  const dateFmt = notif.date.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+  const timeFmt = notif.date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  const orderId = notif.transactionId.slice(-8).toUpperCase();
+  const payerDisplay = notif.payerName || notif.payerEmail || "Client";
+
+  const methodLabels: Record<string, string> = {
+    CARD: "Carte bancaire",
+    APPLE_PAY: "Apple Pay",
+    GOOGLE_PAY: "Google Pay",
+    REVOLUT_PAY: "Revolut Pay",
+    PAYPAL: "PayPal",
+    BANK_TRANSFER: "Virement bancaire",
+    SEPA: "Prélèvement SEPA",
+    OPEN_BANKING: "Open Banking",
+  };
+  const methodDisplay = methodLabels[notif.paymentMethod || ""] || "Carte bancaire";
+
+  return baseLayout(`
+<!-- Money indicator -->
+<div style="text-align:center;margin:0 0 24px">
+<div style="display:inline-block;width:60px;height:60px;background:linear-gradient(135deg,rgba(220,38,38,0.15),rgba(220,38,38,0.05));border:1px solid rgba(220,38,38,0.2);border-radius:50%;line-height:60px;text-align:center">
+<span style="font-size:28px;line-height:60px">💰</span>
+</div>
+</div>
+
+${premiumBadge("Paiement reçu")}
+
+<h1 style="margin:0 0 10px;font-size:28px;font-weight:800;color:#ffffff;text-align:center;letter-spacing:-0.5px;line-height:1.2">
+Vous venez de recevoir<br/>un paiement
+</h1>
+<p style="margin:0 0 32px;font-size:14px;color:#a1a1aa;text-align:center;line-height:1.6">
+Le montant a été crédité sur votre solde Yourazz
+</p>
+
+<!-- Amount display premium -->
+<div style="text-align:center;margin:0 0 32px;padding:28px;background:linear-gradient(135deg,rgba(220,38,38,0.05),rgba(220,38,38,0.02));border:1px solid rgba(220,38,38,0.1);border-radius:18px">
+<p style="margin:0 0 6px;font-size:11px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:1px">Montant reçu</p>
+<p style="margin:0;font-size:40px;font-weight:900;color:#ffffff;letter-spacing:-1.5px" class="amount-display">+${amountFmt}</p>
+</div>
+
+<!-- Payment details -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:16px;overflow:hidden" class="receipt-table">
+<tr>
+<td style="padding:16px 22px;font-size:13px;color:#71717a;border-bottom:1px solid rgba(255,255,255,0.04)">De la part de</td>
+<td style="padding:16px 22px;font-size:13px;color:#ffffff;text-align:right;font-weight:500;border-bottom:1px solid rgba(255,255,255,0.04)">${payerDisplay}</td>
+</tr>
+<tr>
+<td style="padding:16px 22px;font-size:13px;color:#71717a;border-bottom:1px solid rgba(255,255,255,0.04)">Référence</td>
+<td style="padding:16px 22px;font-size:13px;color:#ffffff;text-align:right;font-weight:700;border-bottom:1px solid rgba(255,255,255,0.04);font-family:'SF Mono',SFMono-Regular,Menlo,monospace">#${orderId}</td>
+</tr>
+<tr>
+<td style="padding:16px 22px;font-size:13px;color:#71717a;border-bottom:1px solid rgba(255,255,255,0.04)">Date</td>
+<td style="padding:16px 22px;font-size:13px;color:#ffffff;text-align:right;border-bottom:1px solid rgba(255,255,255,0.04)">${dateFmt} à ${timeFmt}</td>
+</tr>
+<tr>
+<td style="padding:16px 22px;font-size:13px;color:#71717a">Méthode</td>
+<td style="padding:16px 22px;font-size:13px;color:#ffffff;text-align:right">${methodDisplay}</td>
+</tr>
+</table>
+
+<div style="margin-top:32px">
+${ctaButton("Voir mon tableau de bord", `${BASE_URL}/dashboard`)}
+</div>
+
+${securityNotice("Les fonds sont disponibles sur votre solde et peuvent être retirés vers votre compte bancaire depuis votre espace Yourazz.")}
+`, `Vous venez de recevoir ${amountFmt} de ${payerDisplay} sur Yourazz.`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -556,5 +655,5 @@ ${divider()}
 </table>
 
 ${securityNotice("Si vous n'avez pas demandé cette réinitialisation, ignorez cet email. Votre mot de passe actuel restera inchangé. Si vous pensez que votre compte est compromis, contactez-nous immédiatement.")}
-`, "Réinitialisez votre mot de passe YouRazz. Ce lien expire dans 1 heure.");
+`, "Réinitialisez votre mot de passe Yourazz. Ce lien expire dans 1 heure.");
 }

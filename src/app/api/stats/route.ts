@@ -13,12 +13,15 @@ export async function GET() {
   const startOfWeek = new Date(startOfDay);
   startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfPrevWeek = new Date(startOfWeek);
+  startOfPrevWeek.setDate(startOfPrevWeek.getDate() - 7);
+  const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   // Un paiement n'est "en attente" que si sa page de checkout est encore ouverte :
   // les intents abandonnés sont annulés à la fermeture de la page, et ceux qui
   // échappent au signal (crash navigateur) expirent au bout de 30 minutes.
   const pendingWindow = new Date(now.getTime() - 30 * 60 * 1000);
 
-  const [wallet, pendingAgg, todayAgg, weekTx, monthTx, totalCount, succeededCount, payoutAgg, recentTx] = await Promise.all([
+  const [wallet, pendingAgg, todayAgg, weekTx, monthTx, totalCount, succeededCount, payoutAgg, recentTx, prevWeekAgg, prevMonthAgg, methodGroups] = await Promise.all([
     db.wallet.findUnique({ where: { userId: s.userId } }),
     db.transaction.aggregate({
       where: { userId: s.userId, type: "PAYIN", status: "PENDING", createdAt: { gte: pendingWindow } },
@@ -56,10 +59,38 @@ export async function GET() {
         createdAt: true,
       },
     }),
+    db.transaction.aggregate({
+      where: { userId: s.userId, type: "PAYIN", status: "SUCCEEDED", createdAt: { gte: startOfPrevWeek, lt: startOfWeek } },
+      _sum: { amount: true },
+    }),
+    db.transaction.aggregate({
+      where: { userId: s.userId, type: "PAYIN", status: "SUCCEEDED", createdAt: { gte: startOfPrevMonth, lt: startOfMonth } },
+      _sum: { amount: true },
+    }),
+    db.transaction.groupBy({
+      by: ["paymentMethod"],
+      where: { userId: s.userId, type: "PAYIN", status: "SUCCEEDED" },
+      _count: { _all: true },
+      _sum: { amount: true },
+    }),
   ]);
 
   const weekRevenue = weekTx.reduce((a, t) => a + t.amount, 0);
   const monthRevenue = monthTx.reduce((a, t) => a + t.amount, 0);
+  const prevWeekRevenue = prevWeekAgg._sum.amount || 0;
+  const prevMonthRevenue = prevMonthAgg._sum.amount || 0;
+
+  // Tendance en % vs période précédente — null si pas de base de comparaison
+  const trend = (current: number, previous: number) =>
+    previous > 0 ? Math.round(((current - previous) / previous) * 100) : null;
+
+  const methodBreakdown = methodGroups
+    .map((g) => ({
+      method: g.paymentMethod ?? "CARD",
+      count: g._count._all,
+      amount: g._sum.amount || 0,
+    }))
+    .sort((a, b) => b.amount - a.amount);
 
   return NextResponse.json({
     availableBalance: wallet?.availableBalance || 0,
@@ -70,6 +101,10 @@ export async function GET() {
     totalWithdrawn: payoutAgg._sum.amount || 0,
     totalPayments: totalCount,
     successRate: totalCount > 0 ? Math.round((succeededCount / totalCount) * 100) : 0,
+    weekTrend: trend(weekRevenue, prevWeekRevenue),
+    monthTrend: trend(monthRevenue, prevMonthRevenue),
+    avgPayment: monthTx.length > 0 ? Math.round(monthRevenue / monthTx.length) : 0,
+    methodBreakdown,
     weeklyData: buildWeeklyData(weekTx, startOfWeek),
     monthlyData: buildMonthlyData(monthTx, startOfMonth),
     recentTransactions: recentTx,

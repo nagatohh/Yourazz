@@ -10,7 +10,7 @@ export async function GET() {
     if (!s) return NextResponse.json({ user: null }, { status: 401 });
     const user = await db.user.findUnique({
       where: { id: s.userId },
-      select: { id: true, email: true, name: true, role: true, emailVerified: true },
+      select: { id: true, email: true, name: true, username: true, role: true, emailVerified: true },
     });
     if (!user) return NextResponse.json({ user: null }, { status: 401 });
     return NextResponse.json({ user });

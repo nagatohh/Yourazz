@@ -7,6 +7,18 @@ const authPaths = ["/login", "/register"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // Profil public : /@username → /u/username (un segment de route Next
+  // ne peut pas commencer par @, réservé aux parallel routes)
+  const profileMatch = pathname.match(/^\/@([a-zA-Z0-9._-]+)$/);
+  if (profileMatch) {
+    const url = req.nextUrl.clone();
+    url.pathname = `/u/${profileMatch[1]}`;
+    const res = NextResponse.rewrite(url);
+    addSecurityHeaders(res, pathname);
+    return res;
+  }
+
   const token = req.cookies.get("session")?.value;
   let authed = false;
 

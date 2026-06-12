@@ -88,6 +88,42 @@ export async function POST(req: Request) {
               console.error("RECEIPT_EMAIL_ERROR:", emailErr);
             }
           }
+          // Notification au vendeur — Stripe peut rejouer l'évènement si la
+          // requête échoue après l'envoi, d'où la déduplication via EmailLog
+          // (la référence #orderId fait partie du sujet).
+          if (tx) {
+            try {
+              const merchant = await db.user.findUnique({
+                where: { id: tx.userId },
+                select: { email: true },
+              });
+              if (merchant) {
+                const orderId = tx.id.slice(-8).toUpperCase();
+                const alreadyNotified = await db.emailLog.findFirst({
+                  where: {
+                    template: "payment_received",
+                    toEmail: merchant.email,
+                    subject: { contains: `#${orderId}` },
+                  },
+                  select: { id: true },
+                });
+                if (!alreadyNotified) {
+                  const { sendPaymentReceivedNotification } = await import("@/lib/email");
+                  await sendPaymentReceivedNotification(merchant.email, {
+                    amount: tx.amount,
+                    currency: tx.currency,
+                    transactionId: tx.id,
+                    payerName: tx.payerName || undefined,
+                    payerEmail: tx.payerEmail || undefined,
+                    paymentMethod: tx.paymentMethod || undefined,
+                    date: tx.createdAt,
+                  });
+                }
+              }
+            } catch (notifErr) {
+              console.error("MERCHANT_NOTIF_ERROR:", notifErr);
+            }
+          }
         }
         break;
       }

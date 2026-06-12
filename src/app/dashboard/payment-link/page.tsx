@@ -13,6 +13,7 @@ import {
   QrCode,
   Share2,
   Eye,
+  User,
 } from "lucide-react";
 
 interface PaymentLink {
@@ -25,22 +26,36 @@ interface PaymentLink {
 
 export default function PaymentLinkPage() {
   const [link, setLink] = useState<PaymentLink | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [profileCopied, setProfileCopied] = useState(false);
 
   useEffect(() => {
     apiFetch("/api/payment-link")
       .then((r) => r.json())
       .then((d) => setLink(d.link || null))
       .finally(() => setLoading(false));
+
+    apiFetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => setUsername(d.user?.username || null))
+      .catch(() => {});
   }, []);
 
   const fullUrl = link ? `${window.location.origin}/pay/${link.slug}` : "";
+  const profileUrl = username ? `${window.location.origin}/@${username}` : "";
 
   const copyLink = () => {
     navigator.clipboard.writeText(fullUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const copyProfileLink = () => {
+    navigator.clipboard.writeText(profileUrl);
+    setProfileCopied(true);
+    setTimeout(() => setProfileCopied(false), 2000);
   };
 
   const shareLink = async () => {
@@ -142,6 +157,51 @@ export default function PaymentLinkPage() {
               </a>
             </div>
           </Card>
+
+          {/* Profil public */}
+          {username && (
+            <Card className="p-5 sm:p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-brand-500/10 p-2.5">
+                    <User className="h-5 w-5 text-brand-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Votre profil public</CardTitle>
+                    <CardDescription className="text-xs mt-0.5">
+                      Une page qui regroupe tous vos liens de paiement actifs
+                    </CardDescription>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[#141416] p-3 sm:p-4">
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  <code className="block truncate text-xs sm:text-sm text-brand-400 font-mono">
+                    {profileUrl}
+                  </code>
+                </div>
+                <div className="flex flex-shrink-0 gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={copyProfileLink}
+                    className={profileCopied ? "text-emerald-400" : ""}
+                  >
+                    {profileCopied ? (
+                      <CheckCircle className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <a href={profileUrl} target="_blank" rel="noopener noreferrer">
+                    <Button variant="ghost" size="icon">
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </a>
+                </div>
+              </div>
+            </Card>
+          )}
 
           {/* Link details */}
           <div className="grid gap-4 sm:grid-cols-3">
