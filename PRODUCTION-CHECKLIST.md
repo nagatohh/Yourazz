@@ -93,3 +93,9 @@
 3. Retrait : verifier transfer + payout dans le dashboard Stripe (Connect -> compte du user)
 4. Annuler l'abonnement test -> accessStatus CANCELED -> dashboard bloque + lien de paiement public desactive
 
+
+### Webhook comptes connectes - ajout 2026-06-12
+- [x] Destination Connect creee (we_1ThY1hPNsBg1CSSvyxIvWmE7) : payout.*, account.updated, account.external_account.*
+- [x] STRIPE_CONNECT_WEBHOOK_SECRET ajoute en env Vercel production
+- Le endpoint /api/webhooks/stripe accepte les deux signatures (plateforme + connect)
+- payout.paid -> ledger confirmPayout ; payout.failed/canceled -> failPayout (wallet re-credite) + reversal du transfer
