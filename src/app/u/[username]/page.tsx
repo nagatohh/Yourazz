@@ -27,6 +27,8 @@ const getProfile = cache(async (username: string) => {
         name: true,
         username: true,
         status: true,
+        role: true,
+        accessStatus: true,
         createdAt: true,
         paymentLinks: {
           where: { isActive: true },
@@ -39,6 +41,9 @@ const getProfile = cache(async (username: string) => {
       },
     });
     if (!user || user.status !== "ACTIVE") return null;
+    // Profil visible seulement si l'abonnement est actif (sauf admin)
+    const isAdmin = user.role === "ADMIN" || user.role === "ADMIN_OWNER";
+    if (!isAdmin && user.accessStatus !== "ACTIVE") return null;
     return user;
   } catch {
     return null;

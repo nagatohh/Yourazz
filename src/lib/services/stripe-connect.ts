@@ -11,6 +11,7 @@ export async function createConnectedAccount(params: {
   email: string;
   name?: string;
   country?: string;
+  tosAcceptanceIp?: string;
 }): Promise<{ stripeAccountId: string }> {
   const stripe = getStripe();
 
@@ -33,7 +34,7 @@ export async function createConnectedAccount(params: {
     },
     tos_acceptance: {
       date: Math.floor(Date.now() / 1000),
-      ip: "0.0.0.0",
+      ip: params.tosAcceptanceIp || "0.0.0.0",
     },
     metadata: { userId: params.userId },
   });
@@ -135,6 +136,36 @@ export async function createConnectedPayout(params: {
     status: payout.status,
     arrivalDate: payout.arrival_date || undefined,
   };
+}
+
+// Transfer plateforme → compte Connect : c'est le maillon qui alimente le
+// compte du user avec SON argent (tracké par le wallet interne) avant payout.
+export async function createPlatformTransfer(params: {
+  stripeAccountId: string;
+  amount: number;
+  currency: string;
+  idempotencyKey: string;
+  userId: string;
+}): Promise<{ transferId: string }> {
+  const stripe = getStripe();
+
+  const transfer = await stripe.transfers.create(
+    {
+      amount: params.amount,
+      currency: params.currency.toLowerCase(),
+      destination: params.stripeAccountId,
+      description: "Transfert solde Yourazz",
+      metadata: { userId: params.userId },
+    },
+    { idempotencyKey: params.idempotencyKey }
+  );
+
+  return { transferId: transfer.id };
+}
+
+export async function reversePlatformTransfer(transferId: string): Promise<void> {
+  const stripe = getStripe();
+  await stripe.transfers.createReversal(transferId);
 }
 
 export async function getAccountStatus(stripeAccountId: string): Promise<{

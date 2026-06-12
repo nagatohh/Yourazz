@@ -62,3 +62,33 @@
 - [ ] Cron Guardian actif (Vercel → Cron Jobs → `/api/cron/guardian` à 6h00)
 - [ ] Alertes admin visibles dans `/admin/guardian`
 - [ ] Page `/admin/webhooks` : tous les événements récents traités sans erreur
+
+## Yourazz Access (abonnement 29 EUR/mois) - ajout 2026-06-12
+
+### Stripe
+- [ ] Produit "Yourazz Access" (prod_UgvAP2adc4n5lE) + price lookup_key `yourazz_access_monthly` - CREES en live le 2026-06-12
+- [ ] IMPORTANT : le endpoint webhook `https://yourazz.xyz/api/webhooks/stripe` doit recevoir les events :
+      `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted`
+      (Dashboard Stripe -> Developpeurs -> Webhooks -> endpoint -> "evenements ecoutes")
+- [ ] Optionnel : `STRIPE_ACCESS_PRICE_ID` en env Vercel (sinon resolution auto par lookup_key)
+
+### Flux d'acces
+- Invitation (admin) -> inscription -> verification email -> `/access/payment` -> Stripe Checkout (subscription)
+- Activation UNIQUEMENT par webhook (`checkout.session.completed` payment_status=paid, ou `invoice.paid`)
+- `User.accessStatus` : PENDING_PAYMENT -> ACTIVE -> PAST_DUE/CANCELED (gere par webhook seulement)
+- Comptes existants au 2026-06-12 : grandfathered ACTIVE (script `scripts/grandfather-access.ts`, deja execute)
+- Admins : jamais soumis a l'abonnement
+
+### Isolation financiere (verifications faites)
+- [x] Inscription publique fermee (403), acces par invitation uniquement
+- [x] Toutes les routes user filtrent par userId de session
+- [x] Retrait : wallet interne = source de verite, debit atomique, transfer plateforme -> compte Connect du user, payout sur SON compte (`stripeAccount`), rollback par reversal en cas d'echec
+- [x] Payout plateforme legacy neutralise (PLATFORM_PAYOUT_FORBIDDEN)
+- [x] Un compte sans abonnement actif ne peut ni encaisser (pay/[slug], payments/create) ni retirer
+- [x] Compte bancaire : ownership verifie (userId + compte Connect du user)
+
+### Tests manuels a faire apres deploiement
+1. Compte test : invitation -> inscription -> blocage dashboard -> paiement 29 EUR -> activation auto (webhook) -> dashboard OK
+2. User A ne voit pas les transactions de User B (verifie par design : filtres userId)
+3. Retrait : verifier transfer + payout dans le dashboard Stripe (Connect -> compte du user)
+4. Annuler l'abonnement test -> accessStatus CANCELED -> dashboard bloque + lien de paiement public desactive

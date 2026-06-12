@@ -20,6 +20,9 @@ const getLink = cache(async (slug: string) => {
             id: true,
             name: true,
             username: true,
+            role: true,
+            status: true,
+            accessStatus: true,
             createdAt: true,
             _count: {
               select: { transactions: { where: { type: "PAYIN", status: "SUCCEEDED" } } },
@@ -29,6 +32,9 @@ const getLink = cache(async (slug: string) => {
       },
     });
     if (!link || !link.isActive) return null;
+    // Le propriétaire doit avoir un abonnement actif pour encaisser (sauf admin)
+    const ownerIsAdmin = link.user.role === "ADMIN" || link.user.role === "ADMIN_OWNER";
+    if (link.user.status !== "ACTIVE" || (!ownerIsAdmin && link.user.accessStatus !== "ACTIVE")) return null;
     return link;
   } catch {
     return null;

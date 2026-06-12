@@ -71,19 +71,12 @@ export class StripePaymentProvider implements PaymentProvider {
   }
 
   async createPayout(req: PayoutRequest): Promise<PayoutResult> {
-    const stripe = getStripe();
-
-    const payout = await stripe.payouts.create({
-      amount: req.amount,
-      currency: req.currency || "eur",
-      description: req.reference || "Retrait YouRazz",
-      metadata: { walletId: req.walletId, bankAccountId: req.bankAccountId },
-    });
-
-    return {
-      providerPayoutId: payout.id,
-      status: "processing",
-    };
+    // Interdit : un payout sans stripeAccount viderait le solde GLOBAL de la
+    // plateforme. Les retraits passent exclusivement par createConnectedPayout
+    // (lib/services/stripe-connect), exécuté sur le compte Connect du user.
+    throw new Error(
+      "PLATFORM_PAYOUT_FORBIDDEN: utiliser createConnectedPayout (Stripe Connect) — jamais de payout sur le solde plateforme."
+    );
   }
 
   async registerBankAccount(req: RegisterBankAccountRequest): Promise<RegisterBankAccountResult> {

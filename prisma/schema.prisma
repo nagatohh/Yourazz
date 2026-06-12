@@ -16,8 +16,10 @@ model User {
   username         String?    @unique
   role             Role       @default(USER)
   status           UserStatus @default(ACTIVE)
+  accessStatus     AccessStatus @default(PENDING_PAYMENT)
   emailVerified    Boolean    @default(false)
   stripeAccountId  String?    @unique
+  stripeCustomerId String?    @unique
   stripeOnboarded  Boolean    @default(false)
   payoutsEnabled   Boolean    @default(false)
   dailyVolume      Int        @default(0)
@@ -36,9 +38,57 @@ model User {
   openBankingSessions OpenBankingSession[]
   invitationsSent     Invitation[]       @relation("InvitedBy")
   emailVerifications  EmailVerification[]
+  accessSubscription  AccessSubscription?
+  accessPayments      AccessPayment[]
 
   @@index([email])
   @@index([username])
+  @@index([accessStatus])
+}
+
+// Statut d'accès à la plateforme (abonnement Yourazz Access).
+// Distinct de UserStatus : un user ACTIVE côté modération peut être
+// PENDING_PAYMENT côté abonnement. Mis à jour UNIQUEMENT par webhook Stripe.
+enum AccessStatus {
+  PENDING_PAYMENT
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+model AccessSubscription {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  stripeCustomerId     String
+  stripeSubscriptionId String?   @unique
+  status               String    @default("incomplete")
+  priceId              String?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  canceledAt           DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([stripeSubscriptionId])
+  @@index([status])
+}
+
+model AccessPayment {
+  id                      String   @id @default(cuid())
+  userId                  String
+  stripeCheckoutSessionId String?  @unique
+  stripeInvoiceId         String?  @unique
+  amount                  Int
+  currency                String   @default("EUR")
+  status                  String   @default("pending")
+  createdAt               DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
 }
 
 enum Role {

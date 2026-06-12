@@ -31,6 +31,12 @@ export async function POST(req: Request) {
     const receiver = await db.user.findUnique({ where: { id: v.receiverId }, include: { wallet: true } });
     if (!receiver?.wallet) return NextResponse.json({ error: "Bénéficiaire introuvable" }, { status: 404 });
 
+    // Un compte sans abonnement actif ne peut pas encaisser (sauf admin)
+    const receiverIsAdmin = receiver.role === "ADMIN" || receiver.role === "ADMIN_OWNER";
+    if (receiver.status !== "ACTIVE" || (!receiverIsAdmin && receiver.accessStatus !== "ACTIVE")) {
+      return NextResponse.json({ error: "Ce bénéficiaire ne peut pas recevoir de paiements actuellement" }, { status: 403 });
+    }
+
     if (receiver.dailyVolume + v.amount > 1000000) {
       return NextResponse.json({ error: "Limite journalière atteinte" }, { status: 429 });
     }

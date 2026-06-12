@@ -129,10 +129,40 @@ export async function POST(req: Request) {
       }
 
       case "checkout.session.completed": {
+        // Abonnement Yourazz Access vs paiement client : deux mondes distincts
+        if (obj.mode === "subscription" || obj.metadata?.purpose === "yourazz_access") {
+          const { handleAccessCheckoutCompleted } = await import("@/lib/services/access");
+          await handleAccessCheckoutCompleted(obj);
+          break;
+        }
         const paymentIntent = obj.payment_intent as string;
         if (paymentIntent) {
           await confirmPayin({ providerTxId: paymentIntent, provider: "stripe" });
         }
+        break;
+      }
+
+      case "invoice.paid": {
+        const { handleAccessInvoicePaid } = await import("@/lib/services/access");
+        await handleAccessInvoicePaid(obj);
+        break;
+      }
+
+      case "invoice.payment_failed": {
+        const { handleAccessInvoiceFailed } = await import("@/lib/services/access");
+        await handleAccessInvoiceFailed(obj);
+        break;
+      }
+
+      case "customer.subscription.updated": {
+        const { handleAccessSubscriptionUpdated } = await import("@/lib/services/access");
+        await handleAccessSubscriptionUpdated(obj);
+        break;
+      }
+
+      case "customer.subscription.deleted": {
+        const { handleAccessSubscriptionDeleted } = await import("@/lib/services/access");
+        await handleAccessSubscriptionDeleted(obj);
         break;
       }
 

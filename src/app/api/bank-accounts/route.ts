@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { requireActiveAccess } from "@/lib/auth/access";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { maskIban } from "@/lib/utils";
@@ -39,22 +40,24 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const s = await getSession();
-    if (!s) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    const access = await requireActiveAccess();
+    if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
 
     const body = await req.json();
     const v = addBankAccountSchema.parse(body);
 
-    const user = await db.user.findUnique({ where: { id: s.userId } });
+    const user = await db.user.findUnique({ where: { id: access.userId } });
     if (!user) return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
 
     let stripeAccountId = user.stripeAccountId;
 
     if (!stripeAccountId) {
+      const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "0.0.0.0";
       const result = await createConnectedAccount({
         userId: user.id,
         email: user.email,
         name: user.name || undefined,
+        tosAcceptanceIp: ip,
       });
       stripeAccountId = result.stripeAccountId;
 
