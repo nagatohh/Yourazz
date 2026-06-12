@@ -31,6 +31,14 @@ export interface PayLinkData {
   recipientName: string;
 }
 
+export type PayCurrency = "eur" | "usd" | "gbp";
+
+const CURRENCIES: { code: PayCurrency; label: string; symbol: string }[] = [
+  { code: "eur", label: "EUR", symbol: "€" },
+  { code: "usd", label: "USD", symbol: "$" },
+  { code: "gbp", label: "GBP", symbol: "£" },
+];
+
 type Step = "info" | "consent" | "checkout";
 
 export function PayFlow({ link }: { link: PayLinkData }) {
@@ -53,6 +61,8 @@ export function PayFlow({ link }: { link: PayLinkData }) {
     return () => clearTimeout(t);
   }, []);
   const [amount, setAmount] = useState("");
+  // Montant fixe = toujours EUR ; montant libre = devise au choix du payeur
+  const [currency, setCurrency] = useState<PayCurrency>("eur");
   const [payerName, setPayerName] = useState("");
   const [payerEmail, setPayerEmail] = useState("");
   const [description, setDescription] = useState("");
@@ -60,16 +70,19 @@ export function PayFlow({ link }: { link: PayLinkData }) {
   const [payAmount, setPayAmount] = useState(0);
   const [formError, setFormError] = useState("");
 
+  const payCurrency: PayCurrency = link.fixedAmount ? "eur" : currency;
+  const symbol = CURRENCIES.find((c) => c.code === payCurrency)?.symbol ?? "€";
+
   const handleContinue = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
     const finalAmount = link.fixedAmount || Math.round(parseFloat(amount) * 100);
     if (!finalAmount || Number.isNaN(finalAmount) || finalAmount < 100) {
-      setFormError("Le montant minimum est de 1,00 €.");
+      setFormError(`Le montant minimum est de 1,00 ${symbol}.`);
       return;
     }
     if (finalAmount > 10_000_00) {
-      setFormError("Le montant maximum par paiement est de 10 000 €.");
+      setFormError(`Le montant maximum par paiement est de 10 000 ${symbol}.`);
       return;
     }
     setPayAmount(finalAmount);
@@ -86,18 +99,40 @@ export function PayFlow({ link }: { link: PayLinkData }) {
       {step === "info" && (
         <form onSubmit={handleContinue} className="space-y-4">
           {!link.fixedAmount && (
-            <Input
-              id="amount"
-              label="Montant (EUR)"
-              type="number"
-              step="0.01"
-              min="1"
-              inputMode="decimal"
-              placeholder="50.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              required
-            />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label htmlFor="amount" className="block text-sm font-medium text-zinc-300">
+                  Montant
+                </label>
+                <div className="flex items-center gap-0.5 rounded-lg bg-white/[0.03] border border-white/[0.06] p-0.5">
+                  {CURRENCIES.map((c) => (
+                    <button
+                      key={c.code}
+                      type="button"
+                      onClick={() => setCurrency(c.code)}
+                      className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                        currency === c.code
+                          ? "bg-brand-500/10 text-brand-400"
+                          : "text-zinc-500 hover:text-zinc-300"
+                      }`}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Input
+                id="amount"
+                type="number"
+                step="0.01"
+                min="1"
+                inputMode="decimal"
+                placeholder="50.00"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                required
+              />
+            </div>
           )}
           <Input
             id="name"
@@ -144,12 +179,14 @@ export function PayFlow({ link }: { link: PayLinkData }) {
         <div className="space-y-4">
           <SecurePaymentSummary
             amount={payAmount}
+            currency={payCurrency}
             recipientName={link.recipientName}
             payerName={payerName}
             description={description || undefined}
           />
           <PaymentConsentBox
             amount={payAmount}
+            currency={payCurrency}
             recipientName={link.recipientName}
             description={description || undefined}
             onConsent={handleConsent}
@@ -167,12 +204,14 @@ export function PayFlow({ link }: { link: PayLinkData }) {
         <div className="space-y-4">
           <SecurePaymentSummary
             amount={payAmount}
+            currency={payCurrency}
             recipientName={link.recipientName}
             payerName={payerName}
           />
 
           <StripeCheckout
             amount={payAmount}
+            currency={payCurrency}
             receiverId={link.userId}
             payerEmail={payerEmail}
             payerName={payerName}

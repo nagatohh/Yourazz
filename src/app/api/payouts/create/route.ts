@@ -12,6 +12,7 @@ import {
 const createPayoutSchema = z.object({
   amount: z.number().int().min(500, "Minimum 5,00 EUR"),
   bankAccountId: z.string().min(1),
+  totpCode: z.string().max(12).optional(),
 });
 
 /**
@@ -30,6 +31,22 @@ export async function POST(req: Request) {
 
     const user = await db.user.findUnique({ where: { id: access.userId }, include: { wallet: true } });
     if (!user) return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
+
+    // 2FA activé → code TOTP obligatoire avant tout retrait
+    if (user.totpEnabled && user.totpSecret) {
+      if (!v.totpCode) {
+        return NextResponse.json({ error: "Code 2FA requis", requires2fa: true }, { status: 401 });
+      }
+      const { verifyTotpCode } = await import("@/lib/totp");
+      const { decrypt } = await import("@/lib/crypto");
+      if (!verifyTotpCode(decrypt(user.totpSecret), v.totpCode)) {
+        await db.securityLog.create({
+          data: { userId: user.id, action: "PAYOUT_2FA_FAILED", severity: "WARNING" },
+        });
+        return NextResponse.json({ error: "Code 2FA incorrect", requires2fa: true }, { status: 401 });
+      }
+    }
+
     if (!user.stripeAccountId) {
       return NextResponse.json({ error: "Compte Stripe non configuré" }, { status: 400 });
     }

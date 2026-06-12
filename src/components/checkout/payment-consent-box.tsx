@@ -2,9 +2,11 @@
 
 import { useState, useRef } from "react";
 import { Shield } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 interface PaymentConsentBoxProps {
   amount: number;
+  currency?: string;
   recipientName: string;
   description?: string;
   onConsent: (consent: ConsentData) => void;
@@ -17,7 +19,7 @@ export interface ConsentData {
   consentDurationMs: number;
 }
 
-export function PaymentConsentBox({ amount, recipientName, description, onConsent }: PaymentConsentBoxProps) {
+export function PaymentConsentBox({ amount, currency = "eur", recipientName, description, onConsent }: PaymentConsentBoxProps) {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [refundPolicyAccepted, setRefundPolicyAccepted] = useState(false);
   const mountedAt = useRef(Date.now());
@@ -43,7 +45,7 @@ export function PaymentConsentBox({ amount, recipientName, description, onConsen
 
       <div className="space-y-3 text-xs text-zinc-400">
         <p>
-          Vous vous apprêtez à payer <span className="text-white font-medium">{(amount / 100).toFixed(2)} €</span> à{" "}
+          Vous vous apprêtez à payer <span className="text-white font-medium">{formatCurrency(amount, currency.toUpperCase())}</span> à{" "}
           <span className="text-white font-medium">{recipientName}</span>
           {description && <> pour : <span className="text-zinc-300">{description}</span></>}.
         </p>

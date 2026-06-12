@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
 import { createPaymentEvidence, calculateRiskScore } from "@/lib/services/chargeback-defender";
+import { checkPlanCap, toEurApprox } from "@/lib/services/plans";
+import { createNotification } from "@/lib/services/notifications";
 
 const consentSchema = z.object({
   termsAccepted: z.boolean(),
@@ -14,6 +16,7 @@ const consentSchema = z.object({
 
 const schema = z.object({
   amount: z.number().int().min(100).max(99999900),
+  currency: z.enum(["eur", "usd", "gbp"]).default("eur"),
   receiverId: z.string().min(1),
   payerEmail: z.string().email().optional(),
   payerName: z.string().max(100).optional(),
@@ -48,15 +51,44 @@ export async function POST(req: Request) {
     }
     if (!receiver?.wallet) return NextResponse.json({ error: "Bénéficiaire introuvable" }, { status: 404 });
 
-    if (receiver.dailyVolume + v.amount > 1000000) {
+    // Équivalent EUR (taux indicatif) pour les contrôles de limites — le
+    // crédit wallet réel utilisera le taux Stripe au règlement (webhook).
+    const amountEur = toEurApprox(v.amount, v.currency);
+
+    if (receiver.dailyVolume + amountEur > 1000000) {
       return NextResponse.json({ error: "Limite journalière atteinte" }, { status: 429 });
+    }
+
+    // Plafond mensuel du plan (Starter 500€ / Pro 1500€ / Business illimité)
+    const capCheck = await checkPlanCap(receiver, amountEur);
+    if (!capCheck.allowed) {
+      after(async () => {
+        // Prévenir le vendeur qu'il perd des paiements — une seule notif non lue à la fois
+        const existing = await db.notification.findFirst({
+          where: { userId: receiver.id, type: "PLAN_LIMIT_WARNING", read: false },
+          select: { id: true },
+        });
+        if (!existing) {
+          await createNotification({
+            userId: receiver.id,
+            type: "PLAN_LIMIT_WARNING",
+            title: "Plafond mensuel atteint",
+            body: `Un paiement a été refusé : vous avez atteint votre plafond ${capCheck.planName} de ${(capCheck.cap / 100).toFixed(0)}€/mois. Passez au plan supérieur pour continuer à encaisser.`,
+            href: "/dashboard/plan",
+          });
+        }
+      });
+      return NextResponse.json(
+        { error: "Le bénéficiaire a atteint son plafond mensuel d'encaissement." },
+        { status: 403 }
+      );
     }
 
     const stripe = getStripe();
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: v.amount,
-      currency: "eur",
+      currency: v.currency,
       automatic_payment_methods: { enabled: true },
       metadata: {
         receiverId: receiver.id,
@@ -65,6 +97,7 @@ export async function POST(req: Request) {
         payerName: v.payerName || "",
         description: v.description || "",
         idempotencyKey: v.idempotencyKey || "",
+        currency: v.currency,
       },
     }, v.idempotencyKey ? { idempotencyKey: v.idempotencyKey } : undefined);
 
@@ -78,6 +111,7 @@ export async function POST(req: Request) {
         amount: v.amount,
         fees,
         netAmount: v.amount - fees,
+        currency: v.currency.toUpperCase(),
         paymentMethod: "CARD",
         providerTransactionId: paymentIntent.id,
         provider: "stripe",
@@ -148,6 +182,30 @@ export async function POST(req: Request) {
               message: `Score ${risk.score}/100. Raisons: ${risk.reasons.join(", ")}`,
               paymentEvidenceId: evidence.id,
             });
+          }
+
+          // Risque élevé → le vendeur est prévenu en temps réel (email + cloche)
+          if (risk.level === "HIGH" || risk.level === "CRITICAL") {
+            await createNotification({
+              userId: receiver.id,
+              type: "RISK_DETECTED",
+              title: `Paiement à risque ${risk.level === "CRITICAL" ? "critique" : "élevé"} détecté`,
+              body: `Score ${risk.score}/100 sur un paiement de ${(v.amount / 100).toFixed(2)} ${v.currency.toUpperCase()}. Les preuves sont collectées automatiquement.`,
+              href: "/dashboard/transactions",
+            });
+            try {
+              const { sendHighRiskAlertEmail } = await import("@/lib/email");
+              await sendHighRiskAlertEmail(receiver.email, {
+                amount: v.amount,
+                currency: v.currency.toUpperCase(),
+                score: risk.score,
+                reasons: risk.reasons,
+                payerEmail: v.payerEmail,
+                date: new Date(),
+              });
+            } catch (riskEmailErr) {
+              console.error("RISK_ALERT_EMAIL_ERROR:", riskEmailErr);
+            }
           }
         }
       } catch (err) {

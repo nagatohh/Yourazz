@@ -4,21 +4,19 @@ import { db } from "@/lib/db";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 
-// Garde serveur : le dashboard exige un abonnement Yourazz Access actif.
-// Le middleware vérifie déjà le JWT ; ici on vérifie le statut en DB
-// (le JWT ne contient pas accessStatus, qui peut changer via webhook).
+// Garde serveur : le middleware vérifie déjà le JWT ; ici on vérifie le
+// statut de compte en DB. Le plan STARTER étant gratuit, l'abonnement
+// n'est plus exigé pour accéder au dashboard — il plafonne seulement
+// le volume d'encaissement mensuel.
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const s = await getSession();
   if (!s) redirect("/login");
 
   const user = await db.user.findUnique({
     where: { id: s.userId },
-    select: { role: true, status: true, accessStatus: true },
+    select: { role: true, status: true },
   });
   if (!user || user.status !== "ACTIVE") redirect("/login");
-
-  const isAdmin = user.role === "ADMIN" || user.role === "ADMIN_OWNER";
-  if (!isAdmin && user.accessStatus !== "ACTIVE") redirect("/access/payment");
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">

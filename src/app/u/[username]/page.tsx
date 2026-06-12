@@ -40,10 +40,9 @@ const getProfile = cache(async (username: string) => {
         },
       },
     });
+    // Compte modéré uniquement — le plan Starter gratuit a aussi son profil
+    // public, le plafond mensuel s'applique à la création du paiement
     if (!user || user.status !== "ACTIVE") return null;
-    // Profil visible seulement si l'abonnement est actif (sauf admin)
-    const isAdmin = user.role === "ADMIN" || user.role === "ADMIN_OWNER";
-    if (!isAdmin && user.accessStatus !== "ACTIVE") return null;
     return user;
   } catch {
     return null;

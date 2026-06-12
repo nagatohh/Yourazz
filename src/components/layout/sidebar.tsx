@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Logo } from "@/components/ui/logo";
+import { NotificationBell } from "@/components/layout/notification-bell";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/fetch";
 import {
@@ -22,6 +23,7 @@ import {
   Activity,
   ShieldAlert,
   Webhook,
+  Gem,
 } from "lucide-react";
 
 const navItems = [
@@ -30,6 +32,7 @@ const navItems = [
   { href: "/dashboard/payouts", label: "Retraits", icon: Banknote },
   { href: "/dashboard/payment-link", label: "Lien de paiement", icon: LinkIcon },
   { href: "/dashboard/bank-account", label: "Compte bancaire", icon: Building2 },
+  { href: "/dashboard/plan", label: "Mon plan", icon: Gem },
   { href: "/dashboard/settings", label: "Paramètres", icon: Settings },
   { href: "/dashboard/security", label: "Sécurité", icon: Shield },
 ];
@@ -147,13 +150,16 @@ export function Sidebar() {
         <Link href="/dashboard" className="flex items-center">
           <Logo size="sm" />
         </Link>
-        <button
-          onClick={() => setOpen(!open)}
-          className="flex h-10 w-10 items-center justify-center rounded-xl text-zinc-400 hover:bg-white/[0.04] hover:text-white transition-colors"
-          aria-label="Menu"
-        >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        <div className="flex items-center gap-1">
+          <NotificationBell />
+          <button
+            onClick={() => setOpen(!open)}
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-zinc-400 hover:bg-white/[0.04] hover:text-white transition-colors"
+            aria-label="Menu"
+          >
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile overlay */}
@@ -185,10 +191,11 @@ export function Sidebar() {
 
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex fixed left-0 top-0 z-40 h-screen w-64 flex-col border-r border-white/[0.04] bg-[#101012]">
-        <div className="flex h-16 items-center border-b border-white/[0.04] px-5">
+        <div className="flex h-16 items-center justify-between border-b border-white/[0.04] px-5">
           <Link href="/dashboard" className="flex items-center">
             <Logo size="sm" />
           </Link>
+          <NotificationBell />
         </div>
         {sidebarContent}
       </aside>

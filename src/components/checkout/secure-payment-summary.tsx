@@ -1,13 +1,15 @@
 import { Lock } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 interface SecurePaymentSummaryProps {
   amount: number;
+  currency?: string;
   recipientName: string;
   payerName?: string;
   description?: string;
 }
 
-export function SecurePaymentSummary({ amount, recipientName, payerName, description }: SecurePaymentSummaryProps) {
+export function SecurePaymentSummary({ amount, currency = "eur", recipientName, payerName, description }: SecurePaymentSummaryProps) {
   return (
     <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] overflow-hidden">
       <div className="flex items-center gap-2 border-b border-white/[0.05] bg-white/[0.015] px-4 py-2.5">
@@ -19,7 +21,7 @@ export function SecurePaymentSummary({ amount, recipientName, payerName, descrip
       <div className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-sm text-zinc-500">Montant</span>
-          <span className="text-xl font-bold tracking-tight text-white">{(amount / 100).toFixed(2)} €</span>
+          <span className="text-xl font-bold tracking-tight text-white">{formatCurrency(amount, currency.toUpperCase())}</span>
         </div>
         <div className="flex items-center justify-between border-t border-white/[0.05] pt-3">
           <span className="text-sm text-zinc-500">Bénéficiaire</span>

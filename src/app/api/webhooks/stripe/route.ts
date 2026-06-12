@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { confirmPayin, failPayin, confirmPayout, failPayout } from "@/lib/services/ledger";
 import { confirmEvidence, failEvidence, handleDispute } from "@/lib/services/chargeback-defender";
 import { reversePlatformTransfer } from "@/lib/services/stripe-connect";
+import { createNotification } from "@/lib/services/notifications";
+import { toEurApprox } from "@/lib/services/plans";
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -64,6 +66,46 @@ export async function POST(req: Request) {
 
     switch (event.type) {
       case "payment_intent.succeeded": {
+        // Paiement non-EUR : figer la conversion AVANT le crédit wallet.
+        // Le wallet est tenu en EUR — on utilise le montant réellement réglé
+        // par Stripe (balance_transaction) plutôt qu'un taux approximatif.
+        const pendingTx = await db.transaction.findUnique({ where: { providerTransactionId: obj.id } });
+        if (
+          pendingTx &&
+          pendingTx.currency !== "EUR" &&
+          (pendingTx.status === "PENDING" || pendingTx.status === "AUTHORIZED")
+        ) {
+          const chargeIdForFx = typeof obj.latest_charge === "string" ? obj.latest_charge : obj.latest_charge?.id;
+          if (!chargeIdForFx) throw new Error(`FX: charge manquante pour ${obj.id}`);
+          const fxCharge = await stripe.charges.retrieve(chargeIdForFx, { expand: ["balance_transaction"] });
+          const bt = fxCharge.balance_transaction as Stripe.BalanceTransaction | null;
+          if (!bt) throw new Error(`FX: balance_transaction manquante pour ${obj.id}`);
+
+          // Si le règlement n'est pas en EUR (cas anormal), taux indicatif en secours
+          const eurGross = bt.currency.toUpperCase() === "EUR"
+            ? bt.amount
+            : toEurApprox(pendingTx.amount, pendingTx.currency);
+          const fxFees = Math.round((eurGross * 150) / 10000);
+
+          await db.transaction.update({
+            where: { id: pendingTx.id },
+            data: {
+              amount: eurGross,
+              fees: fxFees,
+              netAmount: eurGross - fxFees,
+              currency: "EUR",
+              metadata: {
+                ...((pendingTx.metadata as object) || {}),
+                fx: {
+                  originalAmount: pendingTx.amount,
+                  originalCurrency: pendingTx.currency,
+                  exchangeRate: bt.exchange_rate,
+                },
+              },
+            },
+          });
+        }
+
         const result = await confirmPayin({ providerTxId: obj.id, provider: "stripe" });
         const chargeId = obj.latest_charge || obj.charges?.data?.[0]?.id;
         await confirmEvidence(obj.id, chargeId);
@@ -85,10 +127,12 @@ export async function POST(req: Request) {
           }
           if (tx?.payerEmail && !tx.receiptSent) {
             try {
+              // Le reçu du payeur affiche le montant dans SA devise d'origine
+              const fx = (tx.metadata as any)?.fx;
               const { sendPaymentReceipt } = await import("@/lib/email");
               await sendPaymentReceipt(tx.payerEmail, {
-                amount: tx.amount,
-                currency: tx.currency,
+                amount: fx?.originalAmount ?? tx.amount,
+                currency: fx?.originalCurrency ?? tx.currency,
                 transactionId: tx.id,
                 payerName: tx.payerName || undefined,
                 description: tx.description || undefined,
@@ -129,6 +173,15 @@ export async function POST(req: Request) {
                     payerEmail: tx.payerEmail || undefined,
                     paymentMethod: tx.paymentMethod || undefined,
                     date: tx.createdAt,
+                  });
+                  await createNotification({
+                    userId: tx.userId,
+                    type: "PAYMENT_RECEIVED",
+                    title: `Paiement reçu : ${(tx.netAmount / 100).toFixed(2)} €`,
+                    body: tx.payerName
+                      ? `${tx.payerName} vient de vous payer. Le montant net est disponible sur votre solde.`
+                      : "Un paiement vient d'être crédité sur votre solde.",
+                    href: "/dashboard/transactions",
                   });
                 }
               }
@@ -285,7 +338,44 @@ export async function POST(req: Request) {
 
       case "payout.paid": {
         // Ledger : payout PAID + transaction SUCCEEDED, idempotent
-        await confirmPayout(obj.id);
+        const paidPayout = await confirmPayout(obj.id);
+
+        // Notification temps réel au vendeur — déduplication via EmailLog
+        // (Stripe peut rejouer l'évènement), la réf #ID fait partie du sujet.
+        if (paidPayout) {
+          try {
+            const [payoutUser, payoutBank] = await Promise.all([
+              db.user.findUnique({ where: { id: paidPayout.userId }, select: { email: true } }),
+              db.bankAccount.findUnique({ where: { id: paidPayout.bankAccountId }, select: { ibanMasked: true, bankName: true } }),
+            ]);
+            if (payoutUser) {
+              const ref = paidPayout.id.slice(-8).toUpperCase();
+              const alreadySent = await db.emailLog.findFirst({
+                where: { template: "payout_confirmed", toEmail: payoutUser.email, subject: { contains: `#${ref}` } },
+                select: { id: true },
+              });
+              if (!alreadySent) {
+                const { sendPayoutConfirmedEmail } = await import("@/lib/email");
+                await sendPayoutConfirmedEmail(payoutUser.email, {
+                  amount: paidPayout.amount,
+                  currency: paidPayout.currency,
+                  payoutId: paidPayout.id,
+                  bankLabel: payoutBank ? `${payoutBank.bankName ? payoutBank.bankName + " " : ""}${payoutBank.ibanMasked}` : undefined,
+                  date: new Date(),
+                });
+                await createNotification({
+                  userId: paidPayout.userId,
+                  type: "PAYOUT_CONFIRMED",
+                  title: `Retrait de ${(paidPayout.amount / 100).toFixed(2)} € confirmé`,
+                  body: "Le virement vers votre compte bancaire a été émis. Réception sous 1 à 2 jours ouvrés.",
+                  href: "/dashboard/payouts",
+                });
+              }
+            }
+          } catch (payoutNotifErr) {
+            console.error("PAYOUT_NOTIF_ERROR:", payoutNotifErr);
+          }
+        }
         break;
       }
 
@@ -298,6 +388,32 @@ export async function POST(req: Request) {
         // permet de savoir si cette invocation a réellement fait la transition.
         const before = await failPayout(obj.id, reason);
         const didTransition = before && before.status !== "FAILED";
+
+        // Notification temps réel au vendeur (uniquement à la vraie transition)
+        if (didTransition && before) {
+          try {
+            const failedUser = await db.user.findUnique({ where: { id: before.userId }, select: { email: true } });
+            if (failedUser) {
+              const { sendPayoutFailedEmail } = await import("@/lib/email");
+              await sendPayoutFailedEmail(failedUser.email, {
+                amount: before.amount,
+                currency: before.currency,
+                payoutId: before.id,
+                reason,
+                date: new Date(),
+              });
+              await createNotification({
+                userId: before.userId,
+                type: "PAYOUT_FAILED",
+                title: `Retrait de ${(before.amount / 100).toFixed(2)} € échoué`,
+                body: "Le montant a été re-crédité sur votre solde. Vérifiez votre IBAN puis relancez le retrait.",
+                href: "/dashboard/payouts",
+              });
+            }
+          } catch (payoutFailNotifErr) {
+            console.error("PAYOUT_FAIL_NOTIF_ERROR:", payoutFailNotifErr);
+          }
+        }
 
         // L'argent était déjà sur le compte Connect du user (transfer fait au
         // moment du retrait) : on le ramène sur la plateforme pour rester

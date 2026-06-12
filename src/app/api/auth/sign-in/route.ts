@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { verifyPassword, createSession } from "@/lib/auth";
+import { verifyPassword, createSession, createPending2fa } from "@/lib/auth";
 import { signInSchema } from "@/lib/validators";
 import { rateLimit, rateLimitByAccount, recordFailedAttempt, clearFailedAttempts } from "@/lib/rate-limit";
 
@@ -28,6 +28,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Compte suspendu" }, { status: 403 });
 
     clearFailedAttempts(email);
+
+    // 2FA actif : pas de session tout de suite — cookie intermédiaire 5 min,
+    // la session est créée par /api/auth/2fa/verify après le code TOTP.
+    if (user.totpEnabled) {
+      await createPending2fa(user.id, user.role);
+      await db.securityLog.create({
+        data: { userId: user.id, action: "LOGIN_PENDING_2FA", ipAddress: ip },
+      });
+      return NextResponse.json({ requires2fa: true });
+    }
+
     await createSession(user.id, user.role);
     await db.securityLog.create({
       data: { userId: user.id, action: "LOGIN_SUCCESS", ipAddress: ip },

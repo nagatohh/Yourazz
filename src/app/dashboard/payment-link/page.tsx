@@ -5,6 +5,7 @@ import { apiFetch } from "@/lib/fetch";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { LinkCustomizer } from "@/components/dashboard/link-customizer";
 import {
   Copy,
   ExternalLink,
@@ -20,6 +21,9 @@ interface PaymentLink {
   id: string;
   slug: string;
   label: string;
+  description: string | null;
+  brandColor: string | null;
+  logoUrl: string | null;
   fixedAmount: number | null;
   isActive: boolean;
 }
@@ -202,6 +206,12 @@ export default function PaymentLinkPage() {
               </div>
             </Card>
           )}
+
+          {/* Personnalisation de la page publique */}
+          <LinkCustomizer
+            link={link}
+            onSaved={(updated) => setLink((prev) => (prev ? { ...prev, ...updated } : prev))}
+          />
 
           {/* Link details */}
           <div className="grid gap-4 sm:grid-cols-3">

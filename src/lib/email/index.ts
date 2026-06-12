@@ -657,3 +657,253 @@ ${divider()}
 ${securityNotice("Si vous n'avez pas demandé cette réinitialisation, ignorez cet email. Votre mot de passe actuel restera inchangé. Si vous pensez que votre compte est compromis, contactez-nous immédiatement.")}
 `, "Réinitialisez votre mot de passe Yourazz. Ce lien expire dans 1 heure.");
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. PAYOUT CONFIRMED EMAIL (vendeur)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function sendPayoutConfirmedEmail(email: string, payout: {
+  amount: number;
+  currency: string;
+  payoutId: string;
+  bankLabel?: string;
+  date: Date;
+}) {
+  const amountFmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: payout.currency || "EUR" }).format(payout.amount / 100);
+  const ref = payout.payoutId.slice(-8).toUpperCase();
+  // La référence dans le sujet sert de clé de déduplication (lookup EmailLog côté webhook)
+  const subject = `🏦 Retrait de ${amountFmt} confirmé – Réf #${ref}`;
+
+  const { data, error } = await sendWithRetry({
+    from: FROM,
+    to: email,
+    subject,
+    html: payoutConfirmedTemplate(payout),
+  });
+
+  await logEmail(email, subject, "payout_confirmed", { id: data?.id, error: error?.message });
+  return { success: !error };
+}
+
+function payoutConfirmedTemplate(payout: { amount: number; currency: string; payoutId: string; bankLabel?: string; date: Date }) {
+  const amountFmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: payout.currency || "EUR" }).format(payout.amount / 100);
+  const ref = payout.payoutId.slice(-8).toUpperCase();
+  const dateFmt = payout.date.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+
+  return baseLayout(`
+<div style="text-align:center;margin:0 0 24px">
+<div style="display:inline-block;width:60px;height:60px;background:linear-gradient(135deg,rgba(52,211,153,0.15),rgba(52,211,153,0.05));border:1px solid rgba(52,211,153,0.2);border-radius:50%;line-height:60px;text-align:center">
+<span style="font-size:28px;line-height:60px">🏦</span>
+</div>
+</div>
+
+${premiumBadge("Retrait confirmé")}
+
+<h1 style="margin:0 0 10px;font-size:28px;font-weight:800;color:#ffffff;text-align:center;letter-spacing:-0.5px;line-height:1.2">
+Votre retrait est<br/>en route
+</h1>
+<p style="margin:0 0 32px;font-size:14px;color:#a1a1aa;text-align:center;line-height:1.6">
+Le virement vers votre compte bancaire a été émis
+</p>
+
+<div style="text-align:center;margin:0 0 32px;padding:28px;background:linear-gradient(135deg,rgba(52,211,153,0.05),rgba(52,211,153,0.02));border:1px solid rgba(52,211,153,0.1);border-radius:18px">
+<p style="margin:0 0 6px;font-size:11px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:1px">Montant viré</p>
+<p style="margin:0;font-size:40px;font-weight:900;color:#ffffff;letter-spacing:-1.5px" class="amount-display">${amountFmt}</p>
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:16px;overflow:hidden" class="receipt-table">
+<tr>
+<td style="padding:16px 22px;font-size:13px;color:#71717a;border-bottom:1px solid rgba(255,255,255,0.04)">Référence</td>
+<td style="padding:16px 22px;font-size:13px;color:#ffffff;text-align:right;font-weight:700;border-bottom:1px solid rgba(255,255,255,0.04);font-family:'SF Mono',SFMono-Regular,Menlo,monospace">#${ref}</td>
+</tr>
+${payout.bankLabel ? `<tr>
+<td style="padding:16px 22px;font-size:13px;color:#71717a;border-bottom:1px solid rgba(255,255,255,0.04)">Compte destinataire</td>
+<td style="padding:16px 22px;font-size:13px;color:#ffffff;text-align:right;font-weight:500;border-bottom:1px solid rgba(255,255,255,0.04)">${payout.bankLabel}</td>
+</tr>` : ""}
+<tr>
+<td style="padding:16px 22px;font-size:13px;color:#71717a;border-bottom:1px solid rgba(255,255,255,0.04)">Date</td>
+<td style="padding:16px 22px;font-size:13px;color:#ffffff;text-align:right;border-bottom:1px solid rgba(255,255,255,0.04)">${dateFmt}</td>
+</tr>
+<tr>
+<td style="padding:16px 22px;font-size:13px;color:#71717a">Statut</td>
+<td style="padding:16px 22px;font-size:13px;text-align:right">
+<span style="display:inline-block;padding:5px 12px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.15);color:#34d399;font-size:12px;font-weight:700;border-radius:8px;letter-spacing:0.3px">Viré</span>
+</td>
+</tr>
+</table>
+
+<p style="margin:28px 0 0;font-size:13px;color:#a1a1aa;text-align:center;line-height:1.7">
+Les fonds arrivent généralement sous 1 à 2 jours ouvrés selon votre banque.
+</p>
+
+<div style="margin-top:28px">
+${ctaButton("Voir mes retraits", `${BASE_URL}/dashboard/payouts`)}
+</div>
+
+${securityNotice("Si vous n'êtes pas à l'origine de ce retrait, contactez immédiatement support@yourazz.xyz et changez votre mot de passe.")}
+`, `Votre retrait de ${amountFmt} a été émis vers votre compte bancaire.`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 7. PAYOUT FAILED EMAIL (vendeur)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function sendPayoutFailedEmail(email: string, payout: {
+  amount: number;
+  currency: string;
+  payoutId: string;
+  reason?: string;
+  date: Date;
+}) {
+  const amountFmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: payout.currency || "EUR" }).format(payout.amount / 100);
+  const ref = payout.payoutId.slice(-8).toUpperCase();
+  const subject = `⚠️ Retrait de ${amountFmt} échoué – Réf #${ref}`;
+
+  const { data, error } = await sendWithRetry({
+    from: FROM,
+    to: email,
+    subject,
+    html: payoutFailedTemplate(payout),
+  });
+
+  await logEmail(email, subject, "payout_failed", { id: data?.id, error: error?.message });
+  return { success: !error };
+}
+
+function payoutFailedTemplate(payout: { amount: number; currency: string; payoutId: string; reason?: string; date: Date }) {
+  const amountFmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: payout.currency || "EUR" }).format(payout.amount / 100);
+  const ref = payout.payoutId.slice(-8).toUpperCase();
+  const dateFmt = payout.date.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+
+  return baseLayout(`
+<div style="text-align:center;margin:0 0 24px">
+<div style="display:inline-block;width:60px;height:60px;background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(239,68,68,0.05));border:1px solid rgba(239,68,68,0.2);border-radius:50%;line-height:60px;text-align:center">
+<span style="font-size:28px;line-height:60px">⚠️</span>
+</div>
+</div>
+
+${premiumBadge("Retrait échoué")}
+
+<h1 style="margin:0 0 10px;font-size:28px;font-weight:800;color:#ffffff;text-align:center;letter-spacing:-0.5px;line-height:1.2">
+Votre retrait n'a pas<br/>pu aboutir
+</h1>
+<p style="margin:0 0 32px;font-size:14px;color:#a1a1aa;text-align:center;line-height:1.6">
+Le montant a été automatiquement re-crédité sur votre solde Yourazz
+</p>
+
+<div style="text-align:center;margin:0 0 32px;padding:28px;background:rgba(239,68,68,0.03);border:1px solid rgba(239,68,68,0.1);border-radius:18px">
+<p style="margin:0 0 6px;font-size:11px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:1px">Montant re-crédité</p>
+<p style="margin:0;font-size:36px;font-weight:900;color:#ffffff;letter-spacing:-1.5px">${amountFmt}</p>
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:16px;overflow:hidden">
+<tr>
+<td style="padding:16px 22px;font-size:13px;color:#71717a;border-bottom:1px solid rgba(255,255,255,0.04)">Référence</td>
+<td style="padding:16px 22px;font-size:13px;color:#ffffff;text-align:right;font-weight:700;border-bottom:1px solid rgba(255,255,255,0.04);font-family:monospace">#${ref}</td>
+</tr>
+<tr>
+<td style="padding:16px 22px;font-size:13px;color:#71717a;border-bottom:1px solid rgba(255,255,255,0.04)">Date</td>
+<td style="padding:16px 22px;font-size:13px;color:#ffffff;text-align:right;border-bottom:1px solid rgba(255,255,255,0.04)">${dateFmt}</td>
+</tr>
+${payout.reason ? `<tr>
+<td style="padding:16px 22px;font-size:13px;color:#71717a;border-bottom:1px solid rgba(255,255,255,0.04)">Raison</td>
+<td style="padding:16px 22px;font-size:13px;color:#f87171;text-align:right;font-weight:600;border-bottom:1px solid rgba(255,255,255,0.04)">${payout.reason}</td>
+</tr>` : ""}
+<tr>
+<td style="padding:16px 22px;font-size:13px;color:#71717a">Statut</td>
+<td style="padding:16px 22px;font-size:13px;text-align:right">
+<span style="display:inline-block;padding:5px 12px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.15);color:#f87171;font-size:12px;font-weight:700;border-radius:8px">Échoué</span>
+</td>
+</tr>
+</table>
+
+<p style="margin:28px 0;font-size:14px;color:#a1a1aa;text-align:center;line-height:1.7">
+Vérifiez que votre IBAN est correct et que votre compte bancaire est actif, puis relancez le retrait depuis votre espace.
+</p>
+
+${ctaButton("Relancer mon retrait", `${BASE_URL}/dashboard/payouts`)}
+
+${securityNotice("Votre argent est en sécurité : il a été re-crédité sur votre solde Yourazz et reste disponible à tout moment.")}
+`, `Votre retrait de ${amountFmt} a échoué — le montant a été re-crédité sur votre solde.`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 8. HIGH RISK PAYMENT ALERT (vendeur)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function sendHighRiskAlertEmail(email: string, alert: {
+  amount: number;
+  currency: string;
+  score: number;
+  reasons: string[];
+  payerEmail?: string;
+  date: Date;
+}) {
+  const amountFmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: alert.currency || "EUR" }).format(alert.amount / 100);
+  const subject = `🚨 Paiement à risque détecté – ${amountFmt}`;
+
+  const { data, error } = await sendWithRetry({
+    from: FROM,
+    to: email,
+    subject,
+    html: highRiskAlertTemplate(alert),
+  });
+
+  await logEmail(email, subject, "risk_alert", { id: data?.id, error: error?.message });
+  return { success: !error };
+}
+
+function highRiskAlertTemplate(alert: { amount: number; currency: string; score: number; reasons: string[]; payerEmail?: string; date: Date }) {
+  const amountFmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: alert.currency || "EUR" }).format(alert.amount / 100);
+  const dateFmt = alert.date.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+  const timeFmt = alert.date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+
+  return baseLayout(`
+<div style="text-align:center;margin:0 0 24px">
+<div style="display:inline-block;width:60px;height:60px;background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(245,158,11,0.05));border:1px solid rgba(245,158,11,0.2);border-radius:50%;line-height:60px;text-align:center">
+<span style="font-size:28px;line-height:60px">🚨</span>
+</div>
+</div>
+
+${premiumBadge("Alerte sécurité")}
+
+<h1 style="margin:0 0 10px;font-size:28px;font-weight:800;color:#ffffff;text-align:center;letter-spacing:-0.5px;line-height:1.2">
+Paiement à risque<br/>détecté
+</h1>
+<p style="margin:0 0 32px;font-size:14px;color:#a1a1aa;text-align:center;line-height:1.6">
+Chargeback Defender a identifié un paiement présentant un risque élevé
+</p>
+
+<div style="text-align:center;margin:0 0 32px;padding:28px;background:rgba(245,158,11,0.03);border:1px solid rgba(245,158,11,0.12);border-radius:18px">
+<p style="margin:0 0 6px;font-size:11px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:1px">Score de risque</p>
+<p style="margin:0;font-size:40px;font-weight:900;color:#fbbf24;letter-spacing:-1.5px" class="amount-display">${alert.score}/100</p>
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:16px;overflow:hidden">
+<tr>
+<td style="padding:16px 22px;font-size:13px;color:#71717a;border-bottom:1px solid rgba(255,255,255,0.04)">Montant</td>
+<td style="padding:16px 22px;font-size:13px;color:#ffffff;text-align:right;font-weight:700;border-bottom:1px solid rgba(255,255,255,0.04)">${amountFmt}</td>
+</tr>
+${alert.payerEmail ? `<tr>
+<td style="padding:16px 22px;font-size:13px;color:#71717a;border-bottom:1px solid rgba(255,255,255,0.04)">Payeur</td>
+<td style="padding:16px 22px;font-size:13px;color:#ffffff;text-align:right;border-bottom:1px solid rgba(255,255,255,0.04)">${alert.payerEmail}</td>
+</tr>` : ""}
+<tr>
+<td style="padding:16px 22px;font-size:13px;color:#71717a;border-bottom:1px solid rgba(255,255,255,0.04)">Date</td>
+<td style="padding:16px 22px;font-size:13px;color:#ffffff;text-align:right;border-bottom:1px solid rgba(255,255,255,0.04)">${dateFmt} à ${timeFmt}</td>
+</tr>
+<tr>
+<td style="padding:16px 22px;font-size:13px;color:#71717a;vertical-align:top">Signaux détectés</td>
+<td style="padding:16px 22px;font-size:13px;color:#fbbf24;text-align:right;line-height:1.7">${alert.reasons.map((r) => `• ${r}`).join("<br/>")}</td>
+</tr>
+</table>
+
+<p style="margin:28px 0;font-size:14px;color:#a1a1aa;text-align:center;line-height:1.7">
+Aucune action n'est requise immédiatement : les preuves de paiement sont collectées automatiquement. Restez vigilant si ce payeur vous contacte.
+</p>
+
+${ctaButton("Voir le détail", `${BASE_URL}/dashboard/transactions`)}
+
+${securityNotice("Cette alerte est générée automatiquement par Chargeback Defender. En cas de litige, les preuves collectées (consentement, IP, horodatage) seront utilisées pour vous défendre.")}
+`, `Un paiement de ${amountFmt} présente un score de risque de ${alert.score}/100.`);
+}

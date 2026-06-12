@@ -85,8 +85,14 @@ function addSecurityHeaders(res: NextResponse, pathname: string) {
 
   if (pathname.startsWith("/pay")) {
     res.headers.set("X-Frame-Options", "SAMEORIGIN");
+    // img-src https: — les pages de paiement affichent le logo personnalisé
+    // du vendeur (PaymentLink.logoUrl), hébergé sur un domaine externe
+    res.headers.set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com; frame-src https://js.stripe.com https://hooks.stripe.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.stripe.com https://maps.googleapis.com; font-src 'self'; frame-ancestors 'self'");
+  } else if (pathname.startsWith("/api")) {
+    res.headers.set("X-Frame-Options", "DENY");
   } else {
     res.headers.set("X-Frame-Options", "DENY");
+    res.headers.set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://va.vercel-scripts.com; frame-src https://js.stripe.com https://hooks.stripe.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.stripe.com; connect-src 'self' https://api.stripe.com https://va.vercel-scripts.com; font-src 'self'; frame-ancestors 'none'");
   }
 }
 

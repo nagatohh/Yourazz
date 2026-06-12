@@ -16,6 +16,7 @@ const stripePromise = getStripe();
 
 interface CheckoutProps {
   amount: number;
+  currency?: string;
   receiverId: string;
   payerEmail?: string;
   payerName?: string;
@@ -72,6 +73,7 @@ export function StripeCheckout(props: CheckoutProps) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         amount: props.amount,
+        currency: props.currency || "eur",
         receiverId: props.receiverId,
         payerEmail: props.payerEmail,
         payerName: props.payerName,
@@ -160,6 +162,7 @@ export function StripeCheckout(props: CheckoutProps) {
     >
       <CheckoutForm
         amount={props.amount}
+        currency={props.currency || "eur"}
         transactionId={transactionId!}
         onSuccess={props.onSuccess}
         onError={props.onError}
@@ -172,6 +175,7 @@ export function StripeCheckout(props: CheckoutProps) {
 
 interface CheckoutFormProps {
   amount: number;
+  currency: string;
   transactionId: string;
   onSuccess: (transactionId: string) => void;
   onError: (message: string) => void;
@@ -179,7 +183,7 @@ interface CheckoutFormProps {
   completedRef: MutableRefObject<boolean>;
 }
 
-function CheckoutForm({ amount, transactionId, onSuccess, onError, submittedRef, completedRef }: CheckoutFormProps) {
+function CheckoutForm({ amount, currency, transactionId, onSuccess, onError, submittedRef, completedRef }: CheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -310,7 +314,7 @@ function CheckoutForm({ amount, transactionId, onSuccess, onError, submittedRef,
             Traitement en cours...
           </span>
         ) : (
-          `Payer ${(amount / 100).toFixed(2)} €`
+          `Payer ${new Intl.NumberFormat("fr-FR", { style: "currency", currency: currency.toUpperCase() }).format(amount / 100)}`
         )}
       </Button>
 

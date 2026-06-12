@@ -53,6 +53,9 @@ export default function PayoutsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  // 2FA : le serveur renvoie requires2fa quand l'utilisateur a activé le TOTP
+  const [needs2fa, setNeeds2fa] = useState(false);
+  const [totpCode, setTotpCode] = useState("");
 
   useEffect(() => {
     loadData();
@@ -92,18 +95,29 @@ export default function PayoutsPage() {
       const res = await apiFetch("/api/payouts/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: amountCents, bankAccountId: selectedBank }),
+        body: JSON.stringify({
+          amount: amountCents,
+          bankAccountId: selectedBank,
+          ...(totpCode ? { totpCode: totpCode.replace(/\s/g, "") } : {}),
+        }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Erreur lors du retrait");
+        if (data.requires2fa) {
+          setNeeds2fa(true);
+          if (totpCode) setError(data.error || "Code 2FA incorrect");
+        } else {
+          setError(data.error || "Erreur lors du retrait");
+        }
         return;
       }
 
       setSuccess("Retrait initié avec succès. Vous recevrez les fonds sous 2-3 jours ouvrés.");
       setAmount("");
+      setTotpCode("");
+      setNeeds2fa(false);
       loadData();
     } catch {
       setError("Erreur réseau");
@@ -243,6 +257,25 @@ export default function PayoutsPage() {
                     {parseFloat(amount).toFixed(2)} EUR
                   </span>
                 </div>
+              </div>
+            )}
+
+            {needs2fa && (
+              <div className="rounded-xl border border-brand-500/20 bg-brand-500/[0.04] p-4">
+                <p className="text-sm font-medium text-white mb-1">Vérification 2FA requise</p>
+                <p className="text-xs text-zinc-500 mb-3">
+                  Entrez le code de votre application d&apos;authentification pour confirmer le retrait.
+                </p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  placeholder="123 456"
+                  maxLength={7}
+                  value={totpCode}
+                  onChange={(e) => setTotpCode(e.target.value)}
+                  className="flex h-11 w-full sm:w-48 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-sm font-mono tracking-widest text-white placeholder:text-zinc-500 focus:border-brand-500/50 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                />
               </div>
             )}
 

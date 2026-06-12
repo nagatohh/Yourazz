@@ -7,8 +7,10 @@ export type AccessCheck =
 
 /**
  * Garde d'accès des routes financières : session valide + compte non
- * suspendu + abonnement Yourazz Access actif. Les admins ne sont pas
- * soumis à l'abonnement mais restent soumis au statut de compte.
+ * suspendu. Depuis le passage au modèle Starter/Pro/Business, l'abonnement
+ * n'est plus requis (le plan STARTER est gratuit) : la limite se fait par
+ * plafond mensuel d'encaissement (lib/services/plans.ts). Un utilisateur
+ * doit toujours pouvoir retirer son argent, quel que soit son plan.
  */
 export async function requireActiveAccess(): Promise<AccessCheck> {
   const s = await getSession();
@@ -16,15 +18,10 @@ export async function requireActiveAccess(): Promise<AccessCheck> {
 
   const user = await db.user.findUnique({
     where: { id: s.userId },
-    select: { id: true, role: true, status: true, accessStatus: true },
+    select: { id: true, role: true, status: true },
   });
   if (!user) return { ok: false, error: "Non autorisé", status: 401 };
   if (user.status !== "ACTIVE") return { ok: false, error: "Compte suspendu", status: 403 };
-
-  const isAdmin = user.role === "ADMIN" || user.role === "ADMIN_OWNER";
-  if (!isAdmin && user.accessStatus !== "ACTIVE") {
-    return { ok: false, error: "Abonnement Yourazz Access requis", status: 402 };
-  }
 
   return { ok: true, userId: user.id, role: user.role };
 }

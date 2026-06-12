@@ -154,6 +154,13 @@ export async function handleAccessCheckoutCompleted(session: any) {
   // Sinon invoice.paid prendra le relais.
   if (session.payment_status === "paid") {
     await setAccessStatus(userId, "ACTIVE", "checkout.session.completed");
+
+    // Plan choisi au checkout (metadata posée par createPlanCheckout) ;
+    // un checkout legacy sans metadata.plan correspond à l'ancien
+    // abonnement unique → capacités Pro.
+    const { setUserPlan } = await import("@/lib/services/plans");
+    const plan = session.metadata?.plan === "BUSINESS" ? "BUSINESS" : "PRO";
+    await setUserPlan(userId, plan, "checkout.session.completed");
   }
 }
 
@@ -166,6 +173,8 @@ export async function handleAccessInvoicePaid(invoice: any) {
 
   const period = invoice.lines?.data?.[0]?.period;
   const subscriptionId = typeof subRef === "string" ? subRef : subRef?.id ?? null;
+  const invoicePriceId =
+    invoice.lines?.data?.[0]?.price?.id ?? invoice.lines?.data?.[0]?.pricing?.price_details?.price ?? null;
 
   await db.accessSubscription.upsert({
     where: { userId },
@@ -180,10 +189,17 @@ export async function handleAccessInvoicePaid(invoice: any) {
     update: {
       status: "active",
       stripeSubscriptionId: subscriptionId ?? undefined,
+      priceId: invoicePriceId ?? undefined,
       currentPeriodStart: period?.start ? new Date(period.start * 1000) : undefined,
       currentPeriodEnd: period?.end ? new Date(period.end * 1000) : undefined,
     },
   });
+
+  if (invoicePriceId) {
+    const { resolvePlanFromPriceId, setUserPlan } = await import("@/lib/services/plans");
+    const plan = await resolvePlanFromPriceId(invoicePriceId);
+    if (plan) await setUserPlan(userId, plan, "invoice.paid");
+  }
 
   if (invoice.id) {
     await db.accessPayment.upsert({
@@ -237,12 +253,18 @@ export async function handleAccessSubscriptionUpdated(sub: any) {
     },
   });
 
+  const { resolvePlanFromPriceId, setUserPlan } = await import("@/lib/services/plans");
+  const subPriceId = sub.items?.data?.[0]?.price?.id ?? null;
+
   if (sub.status === "active" || sub.status === "trialing") {
     await setAccessStatus(userId, "ACTIVE", `subscription.${sub.status}`);
+    const plan = await resolvePlanFromPriceId(subPriceId);
+    if (plan) await setUserPlan(userId, plan, `subscription.${sub.status}`);
   } else if (sub.status === "past_due" || sub.status === "unpaid") {
     await setAccessStatus(userId, "PAST_DUE", `subscription.${sub.status}`);
   } else if (sub.status === "canceled" || sub.status === "incomplete_expired") {
     await setAccessStatus(userId, "CANCELED", `subscription.${sub.status}`);
+    await setUserPlan(userId, "STARTER", `subscription.${sub.status}`);
   }
 }
 
@@ -255,4 +277,7 @@ export async function handleAccessSubscriptionDeleted(sub: any) {
     data: { status: "canceled", canceledAt: new Date() },
   });
   await setAccessStatus(userId, "CANCELED", "customer.subscription.deleted");
+
+  const { setUserPlan } = await import("@/lib/services/plans");
+  await setUserPlan(userId, "STARTER", "customer.subscription.deleted");
 }

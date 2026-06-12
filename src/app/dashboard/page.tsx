@@ -25,6 +25,7 @@ import { Skeleton, StatCardSkeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import RevenueChart from "@/components/dashboard/revenue-chart";
 import MethodBreakdown from "@/components/dashboard/method-breakdown";
+import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
 
 interface Stats {
   availableBalance: number;
@@ -180,6 +181,9 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Onboarding nouveaux utilisateurs — disparaît une fois complété */}
+      <OnboardingChecklist />
 
       {/* État du compte de paiement */}
       {wallet && (

@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yourazz — Pitch Deck</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --red: #DC2626;
+            --red-dark: #991B1B;
+            --red-light: #F87171;
+            --red-glow: rgba(220, 38, 38, 0.4);
+            --black: #0A0A0A;
+            --surface: #111111;
+            --card: #161616;
+            --border: #222222;
+            --border-hover: #333333;
+            --white: #FFFFFF;
+            --gray-100: #F5F5F5;
+            --gray-300: #D4D4D4;
+            --gray-400: #A3A3A3;
+            --gray-500: #737373;
+            --gray-600: #525252;
+            --emerald: #10B981;
+            --blue: #3B82F6;
+            --amber: #F59E0B;
+            --purple: #8B5CF6;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--black);
+            color: var(--white);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ═══════════════════ SLIDE SYSTEM ═══════════════════ */
+        .deck { width: 100vw; height: 100vh; position: relative; }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 80px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+                        transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+            transform: scale(0.97) translateY(20px);
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1) translateY(0);
+        }
+
+        .slide.exit {
+            opacity: 0;
+            transform: scale(1.02) translateY(-20px);
+        }
+
+        /* ═══════════════════ BACKGROUNDS ═══════════════════ */
+        .slide::before, .slide::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .bg-hero::before {
+            background:
+                radial-gradient(ellipse 80% 60% at 50% -10%, rgba(220,38,38,0.2) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 80%, rgba(220,38,38,0.06) 0%, transparent 50%);
+        }
+
+        .bg-subtle::before {
+            background: radial-gradient(ellipse 100% 80% at 50% 120%, rgba(220,38,38,0.05) 0%, transparent 60%);
+        }
+
+        .bg-left::before {
+            background: radial-gradient(ellipse 50% 70% at -10% 50%, rgba(220,38,38,0.08) 0%, transparent 60%);
+        }
+
+        .bg-right::before {
+            background: radial-gradient(ellipse 50% 70% at 110% 50%, rgba(220,38,38,0.08) 0%, transparent 60%);
+        }
+
+        .bg-center::before {
+            background: radial-gradient(circle at 50% 50%, rgba(220,38,38,0.06) 0%, transparent 40%);
+        }
+
+        .bg-dramatic::before {
+            background:
+                radial-gradient(ellipse 120% 80% at 50% 0%, rgba(220,38,38,0.18) 0%, transparent 50%),
+                radial-gradient(ellipse 80% 50% at 50% 100%, rgba(220,38,38,0.08) 0%, transparent 40%);
+        }
+
+        /* Grid overlay */
+        .grid-overlay::after {
+            background-image:
+                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: 80px 80px;
+        }
+
+        /* Noise texture */
+        .noise::after {
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        /* ═══════════════════ TYPOGRAPHY ═══════════════════ */
+        .slide-counter {
+            position: absolute;
+            top: 32px;
+            right: 40px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-600);
+            letter-spacing: 1px;
+        }
+
+        .brand-top {
+            position: absolute;
+            top: 32px;
+            left: 40px;
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--red);
+            letter-spacing: -0.3px;
+        }
+
+        .label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: var(--red);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: clamp(48px, 6vw, 84px);
+            font-weight: 900;
+            line-height: 1.05;
+            letter-spacing: -3px;
+        }
+
+        h2 {
+            font-size: clamp(34px, 4vw, 56px);
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -2px;
+        }
+
+        h3 {
+            font-size: clamp(22px, 2.5vw, 32px);
+            font-weight: 700;
+            line-height: 1.3;
+            letter-spacing: -0.5px;
+        }
+
+        .body-text {
+            font-size: clamp(16px, 1.5vw, 20px);
+            color: var(--gray-400);
+            line-height: 1.6;
+            max-width: 640px;
+        }
+
+        .red { color: var(--red); }
+        .light { color: var(--gray-400); }
+        .muted { color: var(--gray-500); }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--red-light) 0%, var(--red) 50%, var(--red-dark) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* ═══════════════════ LAYOUT ═══════════════════ */
+        .center { text-align: center; }
+        .left { text-align: left; }
+        .full-w { width: 100%; max-width: 1100px; }
+        .mt-16 { margin-top: 16px; }
+        .mt-24 { margin-top: 24px; }
+        .mt-32 { margin-top: 32px; }
+        .mt-40 { margin-top: 40px; }
+        .mt-48 { margin-top: 48px; }
+        .mt-56 { margin-top: 56px; }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 64px;
+            align-items: center;
+            width: 100%;
+            max-width: 1100px;
+        }
+
+        .three-col {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        /* ═══════════════════ COMPONENTS ═══════════════════ */
+
+        /* Cards */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.02), transparent);
+            transition: left 0.8s;
+        }
+
+        .card:hover::after { left: 100%; }
+
+        .card:hover {
+            border-color: rgba(220,38,38,0.3);
+            transform: translateY(-4px);
+            box-shadow: 0 24px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(220,38,38,0.1);
+        }
+
+        .card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: rgba(220,38,38,0.08);
+            border: 1px solid rgba(220,38,38,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .card-desc {
+            font-size: 13px;
+            color: var(--gray-500);
+            line-height: 1.5;
+        }
+
+        /* Pain points */
+        .pain-list {
+            list-style: none;
+            max-width: 650px;
+        }
+
+        .pain-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 18px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .pain-item:last-child { border-bottom: none; }
+
+        .pain-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(220,38,38,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 14px;
+            color: var(--red);
+            font-weight: 700;
+        }
+
+        .pain-text {
+            font-size: 16px;
+            line-height: 1.5;
+            color: var(--gray-300);
+        }
+
+        .pain-text strong { color: var(--white); }
+
+        /* Steps */
+        .steps {
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        .step {
+            flex: 1;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 24px 18px;
+            text-align: center;
+            position: relative;
+        }
+
+        .step-num {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--red);
+            color: white;
+            font-size: 13px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 14px;
+        }
+
+        .step-title {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .step-desc {
+            font-size: 12px;
+            color: var(--gray-500);
+            line-height: 1.4;
+        }
+
+        .step-connector {
+            position: absolute;
+            right: -18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--red);
+            font-size: 16px;
+            z-index: 2;
+        }
+
+        /* Dashboard mockup */
+        .dashboard {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 28px;
+            width: 100%;
+            max-width: 520px;
+            box-shadow: 0 60px 120px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03);
+        }
+
+        .dash-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+
+        .dash-label { font-size: 12px; color: var(--gray-500); font-weight: 500; }
+        .dash-amount { font-size: 32px; font-weight: 900; font-family: 'Inter', monospace; margin-top: 4px; }
+        .dash-badge {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--emerald);
+            background: rgba(16,185,129,0.08);
+            border: 1px solid rgba(16,185,129,0.2);
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .dash-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .dash-stat {
+            background: var(--card);
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        .dash-stat-label { font-size: 10px; color: var(--gray-600); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .dash-stat-value { font-size: 18px; font-weight: 800; margin-top: 4px; }
+        .dash-stat-trend { font-size: 10px; color: var(--emerald); margin-top: 2px; font-weight: 600; }
+
+        .dash-chart {
+            height: 80px;
+            background: var(--card);
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-end;
+            padding: 12px;
+            gap: 4px;
+        }
+
+        .chart-bar {
+            flex: 1;
+            background: linear-gradient(to top, var(--red), var(--red-light));
+            border-radius: 3px 3px 0 0;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        .chart-bar:hover { opacity: 1; }
+
+        /* Security */
+        .security-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            max-width: 750px;
+            width: 100%;
+        }
+
+        .sec-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px 20px;
+            transition: all 0.3s;
+        }
+
+        .sec-card:hover {
+            border-color: rgba(220,38,38,0.2);
+        }
+
+        .sec-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: rgba(220,38,38,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .sec-title { font-size: 14px; font-weight: 700; }
+        .sec-sub { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+
+        /* Comparison */
+        .compare-table {
+            width: 100%;
+            max-width: 800px;
+            border-collapse: collapse;
+        }
+
+        .compare-table th {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--gray-500);
+            padding: 12px 16px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .compare-table th:first-child { text-align: left; }
+
+        .compare-table th.highlight {
+            color: var(--red);
+        }
+
+        .compare-table td {
+            padding: 14px 16px;
+            font-size: 14px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            color: var(--gray-400);
+        }
+
+        .compare-table td:first-child {
+            text-align: left;
+            font-weight: 600;
+            color: var(--white);
+        }
+
+        .compare-table td.highlight {
+            background: rgba(220,38,38,0.03);
+        }
+
+        .check { color: var(--emerald); font-weight: 700; }
+        .cross { color: var(--gray-600); }
+        .partial { color: var(--amber); }
+
+        /* Use cases */
+        .usecase-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .usecase {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 24px;
+            transition: all 0.4s;
+        }
+
+        .usecase:hover {
+            border-color: rgba(220,38,38,0.3);
+            transform: translateY(-2px);
+        }
+
+        .usecase-icon { font-size: 28px; margin-bottom: 12px; }
+        .usecase-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+        .usecase-desc { font-size: 13px; color: var(--gray-500); line-height: 1.5; }
+
+        /* Advantages */
+        .adv-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            max-width: 700px;
+            width: 100%;
+        }
+
+        .adv-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+        }
+
+        .adv-check {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: rgba(16,185,129,0.1);
+            border: 1px solid rgba(16,185,129,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: var(--emerald);
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .adv-text { font-size: 14px; font-weight: 600; }
+
+        /* CTA */
+        .cta-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--red);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 18px 36px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 4px 24px rgba(220,38,38,0.3);
+        }
+
+        .cta-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(220,38,38,0.4);
+        }
+
+        .cta-btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            box-shadow: none;
+            color: var(--white);
+        }
+
+        .cta-btn-outline:hover {
+            border-color: var(--red);
+            box-shadow: 0 0 20px rgba(220,38,38,0.2);
+        }
+
+        /* Phone mockup */
+        .phone {
+            width: 240px;
+            height: 480px;
+            background: var(--black);
+            border: 2px solid var(--border);
+            border-radius: 36px;
+            padding: 12px;
+            position: relative;
+            box-shadow: 0 60px 120px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,255,255,0.05);
+        }
+
+        .phone-inner {
+            width: 100%;
+            height: 100%;
+            background: var(--surface);
+            border-radius: 26px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .phone-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 16px;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--gray-400);
+        }
+
+        .phone-content {
+            flex: 1;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .phone-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--red), var(--red-dark));
+            margin-bottom: 8px;
+        }
+
+        .phone-name { font-size: 11px; color: var(--gray-500); }
+        .phone-biz { font-size: 14px; font-weight: 700; margin-top: 2px; }
+        .phone-price { font-size: 28px; font-weight: 900; margin: 14px 0 4px; font-family: monospace; }
+        .phone-desc { font-size: 10px; color: var(--gray-500); }
+
+        .phone-pay-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--red);
+            border-radius: 10px;
+            color: white;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: center;
+            margin-top: 16px;
+        }
+
+        .phone-methods {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .phone-method-badge {
+            padding: 4px 8px;
+            background: var(--card);
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 600;
+            color: var(--gray-400);
+        }
+
+        .phone-footer {
+            padding: 10px;
+            text-align: center;
+            font-size: 9px;
+            color: var(--gray-600);
+            border-top: 1px solid var(--border);
+        }
+
+        /* Vision timeline */
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            max-width: 600px;
+            width: 100%;
+            position: relative;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 19px;
+            top: 20px;
+            bottom: 20px;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--red), var(--red-dark), transparent);
+        }
+
+        .tl-item {
+            display: flex;
+            gap: 20px;
+            padding: 16px 0;
+        }
+
+        .tl-dot {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--card);
+            border: 2px solid var(--red);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--red);
+            z-index: 1;
+        }
+
+        .tl-content { padding-top: 8px; }
+        .tl-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+        .tl-desc { font-size: 13px; color: var(--gray-500); line-height: 1.4; }
+
+        /* Final CTA */
+        .final-stats {
+            display: flex;
+            gap: 48px;
+            margin-top: 40px;
+        }
+
+        .final-stat { text-align: center; }
+        .final-stat-value { font-size: 32px; font-weight: 900; color: var(--red); }
+        .final-stat-label { font-size: 12px; color: var(--gray-500); margin-top: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Features grid */
+        .feat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .feat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 22px;
+            transition: all 0.4s;
+        }
+
+        .feat-card:hover {
+            border-color: rgba(220,38,38,0.25);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .feat-icon { font-size: 22px; margin-bottom: 10px; }
+        .feat-title { font-size: 14px; font-weight: 700; margin-bottom: 5px; }
+        .feat-desc { font-size: 12px; color: var(--gray-500); line-height: 1.4; }
+
+        /* ═══════════════════ NAVIGATION ═══════════════════ */
+        .nav {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: rgba(22,22,22,0.9);
+            border: 1px solid var(--border);
+            border-radius: 50px;
+            padding: 8px 18px;
+            backdrop-filter: blur(20px);
+            z-index: 9999;
+        }
+
+        .nav-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--gray-400);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .nav-btn:hover { border-color: var(--red); color: var(--red); }
+
+        .dots { display: flex; gap: 5px; }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .dot.active {
+            background: var(--red);
+            width: 20px;
+            border-radius: 3px;
+            box-shadow: 0 0 8px rgba(220,38,38,0.5);
+        }
+
+        .slide-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--red), var(--red-light));
+            transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 9999;
+            box-shadow: 0 0 10px var(--red-glow);
+        }
+
+        /* ═══════════════════ ANIMATIONS ═══════════════════ */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeScale {
+            from { opacity: 0; transform: scale(0.92); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(220,38,38,0.2), 0 0 60px rgba(220,38,38,0.1); }
+            50% { box-shadow: 0 0 30px rgba(220,38,38,0.35), 0 0 80px rgba(220,38,38,0.15); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(1); opacity: 0.5; }
+            100% { transform: scale(1.6); opacity: 0; }
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { width: 0; }
+            30% { width: 100%; }
+        }
+
+        .slide.active .anim {
+            animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+        }
+
+        .slide.active .anim-1 { animation-delay: 0.05s; }
+        .slide.active .anim-2 { animation-delay: 0.15s; }
+        .slide.active .anim-3 { animation-delay: 0.3s; }
+        .slide.active .anim-4 { animation-delay: 0.45s; }
+        .slide.active .anim-5 { animation-delay: 0.6s; }
+
+        .slide.active .anim-scale {
+            animation: fadeScale 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+            opacity: 0;
+        }
+
+        .glow { animation: glow 3s ease-in-out infinite; }
+        .float { animation: float 5s ease-in-out infinite; }
+
+        .pulse-container { position: relative; display: inline-block; }
+        .pulse-ring {
+            position: absolute;
+            inset: -8px;
+            border: 2px solid var(--red);
+            border-radius: 50%;
+            animation: pulse-ring 2s ease-out infinite;
+        }
+
+        /* ═══════════════════ RESPONSIVE ═══════════════════ */
+        @media (max-width: 900px) {
+            .slide { padding: 40px 24px; }
+            .two-col { grid-template-columns: 1fr; gap: 32px; }
+            .three-col, .feat-grid { grid-template-columns: 1fr 1fr; }
+            .steps { flex-direction: column; }
+            .step-connector { display: none; }
+            .security-grid, .usecase-grid, .adv-list { grid-template-columns: 1fr; }
+            .compare-table { font-size: 12px; }
+            .final-stats { gap: 24px; flex-wrap: wrap; }
+        }
+
+        @media (max-width: 600px) {
+            .three-col, .feat-grid { grid-template-columns: 1fr; }
+            .dash-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-progress" id="progress"></div>
+    <div class="deck">
+
+        <!-- ═══════════════ SLIDE 1: HERO ═══════════════ -->
+        <div class="slide active bg-hero grid-overlay noise" data-slide="0">
+            <div class="slide-counter">01 / 14</div>
+            <div class="anim anim-1 center">
+                <div style="font-size: clamp(56px, 7vw, 96px); font-weight: 900; letter-spacing: -4px;" class="gradient-text glow">yourazz</div>
+            </div>
+            <div class="anim anim-2 center mt-24">
+                <h3 style="font-weight: 400; color: var(--gray-300);">Le futur des paiements simplifies.</h3>
+            </div>
+            <div class="anim anim-3 center mt-48">
+                <p class="body-text" style="max-width: 500px;">La plateforme de paiement pensee pour les entrepreneurs, createurs et vendeurs qui veulent encaisser sans friction.</p>
+            </div>
+            <div class="anim anim-4 center mt-40" style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;">
+                <div style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 8px;">
+                    <span style="color: var(--emerald); font-size: 12px;">&#9679;</span>
+                    <span style="font-size: 13px; font-weight: 600;">Paiements par carte</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 8px;">
+                    <span style="color: var(--emerald); font-size: 12px;">&#9679;</span>
+                    <span style="font-size: 13px; font-weight: 600;">Apple Pay</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 8px;">
+                    <span style="color: var(--emerald); font-size: 12px;">&#9679;</span>
+                    <span style="font-size: 13px; font-weight: 600;">Google Pay</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════ SLIDE 2: PROBLEME ═══════════════ -->
+        <div class="slide bg-left grid-overlay noise" data-slide="1">
+            <div class="brand-top">yourazz</div>
+            <div class="slide-counter">02 / 14</div>
+            <div class="anim anim-1">
+                <div class="label">Le probleme</div>
+            </div>
+            <div class="anim anim-2">
+                <h2 class="center">Recevoir de l'argent ne devrait<br>pas etre <span class="red">un cauchemar</span></h2>
+            </div>
+            <div class="anim anim-3 mt-40">
+                <ul class="pain-list">
+                    <li class="pain-item">
+                        <div class="pain-icon">1</div>
+                        <div class="pain-text"><strong>Trop d'outils separes</strong> — PayPal, Stripe, virements manuels, Excel... Vous jongler entre 5 plateformes.</div>
+                    </li>
+                    <li class="pain-item">
+                        <div class="pain-icon">2</div>
+                        <div class="pain-text"><strong>Aucun suivi centralise</strong> — Impossible de savoir en un coup d'oeil combien vous avez gagne cette semaine.</div>
+                    </li>
+                    <li class="pain-item">
+                        <div class="pain-icon">3</div>
+                        <div class="pain-text"><strong>Experience client mediocre</strong> — Vos acheteurs doivent creer un compte, remplir des formulaires ou payer en 12 clics.</div>
+                    </li>
+                    <li class="pain-item">
+                        <div class="pain-icon">4</div>
+                        <div class="pain-text"><strong>Risque de litiges</strong> — Quand un client conteste, vous n'avez aucune preuve structuree a presenter.</div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ═══════════════ SLIDE 3: SOLUTION ═══════════════ -->
+        <div class="slide bg-dramatic grid-overlay noise" data-slide="2">
+            <div class="brand-top">yourazz</div>
+            <div class="slide-counter">03 / 14</div>
+            <div class="anim anim-1">
+                <div class="label">La solution</div>
+            </div>
+            <div class="anim anim-2 center">
+                <h2>Une seule plateforme pour<br><span class="gradient-text">tout gerer</span></h2>
+            </div>
+            <div class="anim anim-3 center mt-24">
+                <p class="body-text">Yourazz centralise la reception, le suivi et le retrait de vos paiements dans une interface unique, moderne et securisee.</p>
+            </div>
+            <div class="anim anim-4 mt-48 three-col">
+                <div class="card center">
+                    <div class="card-icon" style="margin: 0 auto 16px;">&#128279;</div>
+                    <div class="card-title">Creez un lien</div>
+                    <div class="card-desc">Un lien unique pour recevoir des paiements de n'importe qui.</div>
+                </div>
+                <div class="card center">
+                    <div class="card-icon" style="margin: 0 auto 16px;">&#128176;</div>
+                    <div class="card-title">Encaissez</div>
+                    <div class="card-desc">Carte, Apple Pay, Google Pay. Votre client paie en un tap.</div>
+                </div>
+                <div class="card center">
+                    <div class="card-icon" style="margin: 0 auto 16px;">&#127974;</div>
+                    <div class="card-title">Retirez</div>
+                    <div class="card-desc">Envoyez vos fonds sur votre IBAN quand vous voulez.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════ SLIDE 4: COMMENT CA MARCHE ═══════════════ -->
+        <div class="slide bg-subtle grid-overlay noise" data-slide="3">
+            <div class="brand-top">yourazz</div>
+            <div class="slide-counter">04 / 14</div>
+            <div class="anim anim-1">
+                <div class="label">Comment ca marche</div>
+            </div>
+            <div class="anim anim-2 center">
+                <h2>Operationnel en <span class="red">2 minutes</span></h2>
+            </div>
+            <div class="anim anim-3 mt-48 steps">
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <div class="step-title">Creez votre compte</div>
+                    <div class="step-desc">Inscription gratuite, sans carte bancaire requise.</div>
+                    <div class="step-connector">&#8594;</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <div class="step-title">Creez un lien</div>
+                    <div class="step-desc">Personnalisez montant, description et apparence.</div>
+                    <div class="step-connector">&#8594;</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">3</div>
+                    <div class="step-title">Partagez</div>
+                    <div class="step-desc">Envoyez le lien par Discord, Instagram, email...</div>
+                    <div class="step-connector">&#8594;</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">4</div>
+                    <div class="step-title">Encaissez</div>
+                    <div class="step-desc">Voyez les paiements arriver en temps reel.</div>
+                    <div class="step-connector">&#8594;</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">5</div>
+                    <div class="step-title">Retirez</div>
+                    <div class="step-desc">Transferez vers votre IBAN en un clic.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════ SLIDE 5: FONCTIONNALITES ═══════════════ -->
+        <div class="slide bg-center grid-overlay noise" data-slide="4">
+            <div class="brand-top">yourazz</div>
+            <div class="slide-counter">05 / 14</div>
+            <div class="anim anim-1">
+                <div class="label">Fonctionnalites</div>
+            </div>
+            <div class="anim anim-2 center">
+                <h2>Tout ce qu'il vous faut,<br><span class="red">rien de superflu</span></h2>
+            </div>
+            <div class="anim anim-3 mt-40 feat-grid">
+                <div class="feat-card">
+                    <div class="feat-icon">&#128279;</div>
+                    <div class="feat-title">Liens de paiement</div>
+                    <div class="feat-desc">Montant fixe ou libre. Logo custom. Couleur personnalisee.</div>
+                </div>
+                <div class="feat-card">
+                    <div class="feat-icon">&#128200;</div>
+                    <div class="feat-title">Dashboard</div>
+                    <div class="feat-desc">Revenus, tendances, taux de succes — tout en temps reel.</div>
+                </div>
+                <div class="feat-card">
+                    <div class="feat-icon">&#128179;</div>
+                    <div class="feat-title">Transactions</div>
+                    <div class="feat-desc">Historique complet avec filtres et export CSV.</div>
+                </div>
+                <div class="feat-card">
+                    <div class="feat-icon">&#128176;</div>
+                    <div class="feat-title">Retraits</div>
+                    <div class="feat-desc">Vers votre IBAN des 5 euros. Zero frais de retrait.</div>
+                </div>
+                <div class="feat-card">
+                    <div class="feat-icon">&#63743;</div>
+                    <div class="feat-title">Apple Pay</div>
+                    <div class="feat-desc">Detection automatique. Paiement biometrique (Face ID).</div>
+                </div>
+                <div class="feat-card">
+                    <div class="feat-icon">&#128241;</div>
+                    <div class="feat-title">Google Pay</div>
+                    <div class="feat-desc">Paiement en un tap sur Chrome et Android.</div>
+                </div>
+                <div class="feat-card">
+                    <div class="feat-icon">&#128274;</div>
+                    <div class="feat-title">2FA & Securite</div>
+                    <div class="feat-desc">Authentification forte, codes backup, audit trail.</div>
+                </div>
+                <div class="feat-card">
+                    <div class="feat-icon">&#128232;</div>
+                    <div class="feat-title">Notifications</div>
+                    <div class="feat-desc">Email instantane a chaque paiement recu.</div>
+                </div>
+                <div class="feat-card">
+                    <div class="feat-icon">&#128737;</div>
+                    <div class="feat-title">Anti-fraude</div>
+                    <div class="feat-desc">Chargeback Defender avec preuves automatiques.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════ SLIDE 6: DASHBOARD ═══════════════ -->
+        <div class="slide bg-right grid-overlay noise" data-slide="5">
+            <div class="brand-top">yourazz</div>
+            <div class="slide-counter">06 / 14</div>
+            <div class="two-col">
+                <div>
+                    <div class="anim anim-1">
+                        <div class="label">Tableau de bord</div>
+                    </div>
+                    <div class="anim anim-2">
+                        <h2>Votre business en <span class="red">un regard</span></h2>
+                    </div>
+                    <div class="anim anim-3 mt-16">
+                        <p class="body-text" style="font-size: 15px;">Suivez vos revenus en temps reel. Visualisez vos tendances. Identifiez vos periodes les plus rentables. Tout dans une interface fluide et intuitive.</p>
+                    </div>
+                    <div class="anim anim-4 mt-24">
+                        <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px;">
+                            <li style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500;">
+                                <span style="color: var(--emerald);">&#10003;</span> Solde disponible & en attente
+                            </li>
+                            <li style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500;">
+                                <span style="color: var(--emerald);">&#10003;</span> Graphiques jour / semaine / mois
+                            </li>
+                            <li style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500;">
+                                <span style="color: var(--emerald);">&#10003;</span> Flux de transactions en direct
+                            </li>
+                            <li style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500;">
+                                <span style="color: var(--emerald);">&#10003;</span> Taux de succes & comparaisons
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="anim-scale">
+                    <div class="dashboard float">
+                        <div class="dash-header">
+                            <div>
+                                <div class="dash-label">Solde disponible</div>
+                                <div class="dash-amount">&euro;4,219.80</div>
+                            </div>
+                            <div class="dash-badge">&#8593; +32%</div>
+                        </div>
+                        <div class="dash-grid">
+                            <div class="dash-stat">
+                                <div class="dash-stat-label">Aujourd'hui</div>
+                                <div class="dash-stat-value">&euro;487</div>
+                                <div class="dash-stat-trend">+22%</div>
+                            </div>
+                            <div class="dash-stat">
+                                <div class="dash-stat-label">Semaine</div>
+                                <div class="dash-stat-value">&euro;2,105</div>
+                                <div class="dash-stat-trend">+18%</div>
+                            </div>
+                            <div class="dash-stat">
+                                <div class="dash-stat-label">Succes</div>
+                                <div class="dash-stat-value">98.4%</div>
+                                <div class="dash-stat-trend">Excellent</div>
+                            </div>
+                        </div>
+                        <div class="dash-chart">
+                            <div class="chart-bar" style="height: 30%;"></div>
+                            <div class="chart-bar" style="height: 45%;"></div>
+                            <div class="chart-bar" style="height: 35%;"></div>
+                            <div class="chart-bar" style="height: 60%;"></div>
+                            <div class="chart-bar" style="height: 50%;"></div>
+                            <div class="chart-bar" style="height: 75%;"></div>
+                            <div class="chart-bar" style="height: 65%;"></div>
+                            <div class="chart-bar" style="height: 85%;"></div>
+                            <div class="chart-bar" style="height: 70%;"></div>
+                            <div class="chart-bar" style="height: 90%;"></div>
+                            <div class="chart-bar" style="height: 80%;"></div>
+                            <div class="chart-bar" style="height: 95%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════ SLIDE 7: SECURITE ═══════════════ -->
+        <div class="slide bg-left grid-overlay noise" data-slide="6">
+            <div class="brand-top">yourazz</div>
+            <div class="slide-counter">07 / 14</div>
+            <div class="anim anim-1 center">
+                <div class="pulse-container" style="margin-bottom: 24px;">
+                    <div class="pulse-ring"></div>
+                    <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(220,38,38,0.1); border: 2px solid var(--red); display: flex; align-items: center; justify-content: center; font-size: 28px;">&#128274;</div>
+                </div>
+            </div>
+            <div class="anim anim-2">
+                <div class="label center">Securite</div>
+            </div>
+            <div class="anim anim-3 center">
+                <h2>Infrastructure de<br><span class="red">niveau bancaire</span></h2>
+            </div>
+            <div class="anim anim-4 center mt-16">
+                <p class="body-text">Vos fonds et donnees sont proteges par les memes standards que les plus grandes banques.</p>
+            </div>
+            <div class="anim anim-5 mt-40 security-grid">
+                <div class="sec-card">
+                    <div class="sec-icon">&#128272;</div>
+                    <div>
+                        <div class="sec-title">Chiffrement AES-256</div>
+                        <div class="sec-sub">Donnees bancaires chiffrees au repos</div>
+                    </div>
+                </div>
+                <div class="sec-card">
+                    <div class="sec-icon">&#128179;</div>
+                    <div>
+                        <div class="sec-title">PCI-DSS Level 1</div>
+                        <div class="sec-sub">Zero stockage de cartes via Stripe</div>
+                    </div>
+                </div>
+                <div class="sec-card">
+                    <div class="sec-icon">&#128737;</div>
+                    <div>
+                        <div class="sec-title">3D Secure 2</div>
+                        <div class="sec-sub">Authentification forte automatique</div>
+                    </div>
+                </div>
+                <div class="sec-card">
+                    <div class="sec-icon">&#128274;</div>
+                    <div>
+                        <div class="sec-title">TLS 1.3</div>
+                        <div class="sec-sub">Connexion chiffree de bout en bout</div>
+                    </div>
+                </div>
+                <div class="sec-card">
+                    <div class="sec-icon">&#128170;</div>
+                    <div>
+                        <div class="sec-title">Chargeback Defender</div>
+                        <div class="sec-sub">Preuves automatiques anti-litiges</div>
+                    </div>
+                </div>
+                <div class="sec-card">
+                    <div class="sec-icon">&#128064;</div>
+                    <div>
+                        <div class="sec-title">Monitoring 24/7</div>
+                        <div class="sec-sub">Guardian surveille votre infrastructure</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════ SLIDE 8: COMPARAISON ═══════════════ -->
+        <div class="slide bg-subtle grid-overlay noise" data-slide="7">
+            <div class="brand-top">yourazz</div>
+            <div class="slide-counter">08 / 14</div>
+            <div class="anim anim-1">
+                <div class="label center">Comparaison</div>
+            </div>
+            <div class="anim anim-2 center">
+                <h2>Pourquoi choisir <span class="red">Yourazz</span> ?</h2>
+            </div>
+            <div class="anim anim-3 mt-40" style="width: 100%; max-width: 800px; overflow-x: auto;">
+                <table class="compare-table">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th class="highlight">Yourazz</th>
+                            <th>PayPal</th>
+                            <th>Virement</th>
+                            <th>Autres</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Lien de paiement en 30s</td>
+                            <td class="highlight"><span class="check">&#10003;</span></td>
+                            <td><span class="partial">~</span></td>
+                            <td><span class="cross">&#10005;</span></td>
+                            <td><span class="partial">~</span></td>
+                        </tr>
+                        <tr>
+                            <td>Apple Pay & Google Pay</td>
+                            <td class="highlight"><span class="check">&#10003;</span></td>
+                            <td><span class="cross">&#10005;</span></td>
+                            <td><span class="cross">&#10005;</span></td>
+                            <td><span class="partial">~</span></td>
+                        </tr>
+                        <tr>
+                            <td>Zero compte requis (client)</td>
+                            <td class="highlight"><span class="check">&#10003;</span></td>
+                            <td><span class="cross">&#10005;</span></td>
+                            <td><span class="check">&#10003;</span></td>
+                            <td><span class="cross">&#10005;</span></td>
+                        </tr>
+                        <tr>
+                            <td>Dashboard en temps reel</td>
+                            <td class="highlight"><span class="check">&#10003;</span></td>
+                            <td><span class="partial">~</span></td>
+                            <td><span class="cross">&#10005;</span></td>
+                            <td><span class="partial">~</span></td>
+                        </tr>
+                        <tr>
+                            <td>Protection anti-litiges</td>
+                            <td class="highlight"><span class="check">&#10003;</span></td>
+                            <td><span class="cross">&#10005;</span></td>
+                            <td><span class="cross">&#10005;</span></td>
+                            <td><span class="cross">&#10005;</span></td>
+                        </tr>
+                        <tr>
+                            <td>Retrait IBAN sans frais</td>
+                            <td class="highlight"><span class="check">&#10003;</span></td>
+                            <td><span class="cross">&#10005;</span></td>
+                            <td><span class="check">&#10003;</span></td>
+                            <td><span class="partial">~</span></td>
+                        </tr>
+                        <tr>
+                            <td>Interface moderne</td>
+                            <td class="highlight"><span class="check">&#10003;</span></td>
+                            <td><span class="cross">&#10005;</span></td>
+                            <td><span class="cross">&#10005;</span></td>
+                            <td><span class="partial">~</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ═══════════════ SLIDE 9: CAS D'UTILISATION ═══════════════ -->
+        <div class="slide bg-right grid-overlay noise" data-slide="8">
+            <div class="brand-top">yourazz</div>
+            <div class="slide-counter">09 / 14</div>
+            <div class="anim anim-1">
+                <div class="label center">Cas d'utilisation</div>
+            </div>
+            <div class="anim anim-2 center">
+                <h2>Concu pour <span class="red">vous</span></h2>
+            </div>
+            <div class="anim anim-3 center mt-16">
+                <p class="body-text">Que vous vendiez des services, du contenu ou des produits digitaux — Yourazz s'adapte.</p>
+            </div>
+            <div class="anim anim-4 mt-40 usecase-grid">
+                <div class="usecase">
+                    <div class="usecase-icon">&#127918;</div>
+                    <div class="usecase-title">Vendeur Discord</div>
+                    <div class="usecase-desc">Partagez votre lien directement dans vos serveurs. Vos clients paient sans quitter la conversation.</div>
+                </div>
+                <div class="usecase">
+                    <div class="usecase-icon">&#128187;</div>
+                    <div class="usecase-title">Freelance</div>
+                    <div class="usecase-desc">Envoyez un lien de paiement apres chaque mission. Plus besoin de relancer pour les factures.</div>
+                </div>
+                <div class="usecase">
+                    <div class="usecase-icon">&#127916;</div>
+                    <div class="usecase-title">Createur de contenu</div>
+                    <div class="usecase-desc">Monetisez votre audience. Vendez des formations, coaching ou acces premium en un clic.</div>
+                </div>
+                <div class="usecase">
+                    <div class="usecase-icon">&#128640;</div>
+                    <div class="usecase-title">Entrepreneur</div>
+                    <div class="usecase-desc">Lancez votre business sans creer de site e-commerce. Un lien suffit pour commencer a vendre.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════ SLIDE 10: AVANTAGES ═══════════════ -->
+        <div class="slide bg-center grid-overlay noise" data-slide="9">
+            <div class="brand-top">yourazz</div>
+            <div class="slide-counter">10 / 14</div>
+            <div class="anim anim-1">
+                <div class="label center">Les avantages</div>
+            </div>
+            <div class="anim anim-2 center">
+                <h2>Ce qui fait la <span class="red">difference</span></h2>
+            </div>
+            <div class="anim anim-3 mt-40 adv-list">
+                <div class="adv-item">
+                    <div class="adv-check">&#10003;</div>
+                    <div class="adv-text">Interface premium et intuitive</div>
+                </div>
+                <div class="adv-item">
+                    <div class="adv-check">&#10003;</div>
+                    <div class="adv-text">Paiements credites en &lt;48h</div>
+                </div>
+                <div class="adv-item">
+                    <div class="adv-check">&#10003;</div>
+                    <div class="adv-text">Suivi complet en temps reel</div>
+                </div>
+                <div class="adv-item">
+                    <div class="adv-check">&#10003;</div>
+                    <div class="adv-text">Setup en 2 minutes chrono</div>
+                </div>
+                <div class="adv-item">
+                    <div class="adv-check">&#10003;</div>
+                    <div class="adv-text">Zero friction pour vos clients</div>
+                </div>
+                <div class="adv-item">
+                    <div class="adv-check">&#10003;</div>
+                    <div class="adv-text">Protection anti-fraude integree</div>
+                </div>
+                <div class="adv-item">
+                    <div class="adv-check">&#10003;</div>
+                    <div class="adv-text">Apple Pay & Google Pay natifs</div>
+                </div>
+                <div class="adv-item">
+                    <div class="adv-check">&#10003;</div>
+                    <div class="adv-text">Retrait IBAN sans aucun frais</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════ SLIDE 11: TARIFS ═══════════════ -->
+        <div class="slide bg-center grid-overlay noise" data-slide="10">
+            <div class="brand-top">yourazz</div>
+            <div class="slide-counter">11 / 14</div>
+            <div class="anim anim-1">
+                <div class="label center">Tarifs</div>
+            </div>
+            <div class="anim anim-2 center">
+                <h2>Un plan pour chaque <span class="red">ambition</span></h2>
+            </div>
+            <div class="anim anim-3 center mt-16">
+                <p class="body-text">Commencez gratuitement, upgradez quand votre business decolle. Sans engagement, sans frais caches.</p>
+            </div>
+            <div class="anim anim-4 mt-40 three-col" style="max-width: 900px;">
+                <!-- Starter -->
+                <div class="card" style="text-align: center; display: flex; flex-direction: column;">
+                    <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--gray-500); margin-bottom: 12px;">Starter</p>
+                    <p style="font-size: 36px; font-weight: 900; color: var(--white);">Gratuit</p>
+                    <p style="font-size: 13px; color: var(--gray-500); margin-top: 4px; margin-bottom: 20px;">500 &euro; / mois d'encaissement</p>
+                    <div style="border-top: 1px solid var(--border); padding-top: 16px; text-align: left; flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; color: var(--gray-400);">
+                            <span style="color: var(--emerald);">&#10003;</span> Lien de paiement
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; color: var(--gray-400);">
+                            <span style="color: var(--emerald);">&#10003;</span> Carte, Apple Pay, Google Pay
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; color: var(--gray-400);">
+                            <span style="color: var(--emerald);">&#10003;</span> Dashboard temps reel
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; color: var(--gray-400);">
+                            <span style="color: var(--emerald);">&#10003;</span> Retraits IBAN sans frais
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gray-400);">
+                            <span style="color: var(--emerald);">&#10003;</span> Chargeback Defender
+                        </div>
+                    </div>
+                </div>
+                <!-- Pro -->
+                <div class="card" style="text-align: center; display: flex; flex-direction: column; border-color: var(--red); box-shadow: 0 0 40px rgba(220,38,38,0.1);">
+                    <span style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--red); color: white; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; letter-spacing: 1px;">POPULAIRE</span>
+                    <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--red); margin-bottom: 12px;">Pro</p>
+                    <p style="font-size: 36px; font-weight: 900; color: var(--white);">7,99 &euro;<span style="font-size: 14px; font-weight: 400; color: var(--gray-500);"> /mois</span></p>
+                    <p style="font-size: 13px; color: var(--gray-500); margin-top: 4px; margin-bottom: 20px;">1 500 &euro; / mois d'encaissement</p>
+                    <div style="border-top: 1px solid var(--border); padding-top: 16px; text-align: left; flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; color: var(--gray-400);">
+                            <span style="color: var(--emerald);">&#10003;</span> Tout le plan Starter
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; color: var(--gray-400);">
+                            <span style="color: var(--emerald);">&#10003;</span> Plafond 3x plus eleve
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; color: var(--gray-400);">
+                            <span style="color: var(--emerald);">&#10003;</span> Multi-devises (EUR, USD, GBP)
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; color: var(--gray-400);">
+                            <span style="color: var(--emerald);">&#10003;</span> Support prioritaire
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gray-400);">
+                            <span style="color: var(--emerald);">&#10003;</span> Logo personnalise
+                        </div>
+                    </div>
+                </div>
+                <!-- Business -->
+                <div class="card" style="text-align: center; display: flex; flex-direction: column;">
+                    <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--amber); margin-bottom: 12px;">Business</p>
+                    <p style="font-size: 36px; font-weight: 900; color: var(--white);">19,99 &euro;<span style="font-size: 14px; font-weight: 400; color: var(--gray-500);"> /mois</span></p>
+                    <p style="font-size: 13px; color: var(--gray-500); margin-top: 4px; margin-bottom: 20px;">Encaissement illimite</p>
+                    <div style="border-top: 1px solid var(--border); padding-top: 16px; text-align: left; flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; color: var(--gray-400);">
+                            <span style="color: var(--emerald);">&#10003;</span> Tout le plan Pro
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; color: var(--gray-400);">
+                            <span style="color: var(--emerald);">&#10003;</span> Aucun plafond mensuel
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; color: var(--gray-400);">
+                            <span style="color: var(--emerald);">&#10003;</span> Statistiques avancees
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; color: var(--gray-400);">
+                            <span style="color: var(--emerald);">&#10003;</span> Accompagnement dedie
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gray-400);">
+                            <span style="color: var(--emerald);">&#10003;</span> Acces API
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="anim anim-5 center mt-24">
+                <p style="font-size: 12px; color: var(--gray-600);">Tous les plans incluent Apple Pay, Google Pay, Chargeback Defender et retraits sans frais.</p>
+            </div>
+        </div>
+
+        <!-- ═══════════════ SLIDE 12: VISION ═══════════════ -->
+        <div class="slide bg-dramatic grid-overlay noise" data-slide="11">
+            <div class="brand-top">yourazz</div>
+            <div class="slide-counter">12 / 14</div>
+            <div class="two-col">
+                <div>
+                    <div class="anim anim-1">
+                        <div class="label">Notre vision</div>
+                    </div>
+                    <div class="anim anim-2">
+                        <h2>Devenir la reference des <span class="red">paiements independants</span></h2>
+                    </div>
+                    <div class="anim anim-3 mt-16">
+                        <p class="body-text" style="font-size: 15px;">Yourazz construit l'infrastructure financiere que les entrepreneurs et createurs meritent — simple, rapide, juste.</p>
+                    </div>
+                </div>
+                <div class="anim anim-4">
+                    <div class="timeline">
+                        <div class="tl-item">
+                            <div class="tl-dot">&#10003;</div>
+                            <div class="tl-content">
+                                <div class="tl-title">Paiements par lien</div>
+                                <div class="tl-desc">Carte, Apple Pay, Google Pay — deja operationnel.</div>
+                            </div>
+                        </div>
+                        <div class="tl-item">
+                            <div class="tl-dot">&#10003;</div>
+                            <div class="tl-content">
+                                <div class="tl-title">Dashboard & Analytics</div>
+                                <div class="tl-desc">Suivi en temps reel, stats, export CSV.</div>
+                            </div>
+                        </div>
+                        <div class="tl-item">
+                            <div class="tl-dot">&#9672;</div>
+                            <div class="tl-content">
+                                <div class="tl-title">Abonnements recurrents</div>
+                                <div class="tl-desc">Monetisez avec des paiements mensuels automatiques.</div>
+                            </div>
+                        </div>
+                        <div class="tl-item">
+                            <div class="tl-dot">&#9675;</div>
+                            <div class="tl-content">
+                                <div class="tl-title">API & Integrations</div>
+                                <div class="tl-desc">Connectez Yourazz a vos outils existants.</div>
+                            </div>
+                        </div>
+                        <div class="tl-item">
+                            <div class="tl-dot">&#9675;</div>
+                            <div class="tl-content">
+                                <div class="tl-title">Multi-devises & International</div>
+                                <div class="tl-desc">Acceptez des paiements du monde entier.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════ SLIDE 13: CTA FINAL ═══════════════ -->
+        <div class="slide bg-hero grid-overlay noise" data-slide="12">
+            <div class="brand-top">yourazz</div>
+            <div class="slide-counter">13 / 14</div>
+            <div class="anim anim-1 center">
+                <div style="font-size: clamp(40px, 5vw, 64px); font-weight: 900; letter-spacing: -3px;" class="gradient-text">yourazz</div>
+            </div>
+            <div class="anim anim-2 center mt-32">
+                <h2>Pret a encaisser<br><span class="red">autrement</span> ?</h2>
+            </div>
+            <div class="anim anim-3 center mt-16">
+                <p class="body-text">Rejoignez la plateforme et commencez a recevoir des paiements en quelques minutes. Sans engagement.</p>
+            </div>
+            <div class="anim anim-4 center mt-32" style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;">
+                <a href="https://yourazz.xyz" class="cta-btn glow">Creer mon compte &rarr;</a>
+                <a href="https://yourazz.xyz" class="cta-btn cta-btn-outline">Voir une demo</a>
+            </div>
+            <div class="anim anim-5 final-stats">
+                <div class="final-stat">
+                    <div class="final-stat-value">2 min</div>
+                    <div class="final-stat-label">Inscription</div>
+                </div>
+                <div class="final-stat">
+                    <div class="final-stat-value">0&euro;</div>
+                    <div class="final-stat-label">Pour commencer</div>
+                </div>
+                <div class="final-stat">
+                    <div class="final-stat-value">24/7</div>
+                    <div class="final-stat-label">Disponible</div>
+                </div>
+                <div class="final-stat">
+                    <div class="final-stat-value">100%</div>
+                    <div class="final-stat-label">Securise</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════ SLIDE 14: MOYENS DE PAIEMENT ═══════════════ -->
+        <div class="slide bg-left grid-overlay noise" data-slide="13">
+            <div class="brand-top">yourazz</div>
+            <div class="slide-counter">14 / 14</div>
+            <div class="anim anim-1">
+                <div class="label center">Moyens de paiement</div>
+            </div>
+            <div class="anim anim-2 center">
+                <h2>Tous les moyens de paiement,<br><span class="red">un seul lien</span></h2>
+            </div>
+            <div class="anim anim-3 mt-40" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; max-width: 850px; width: 100%;">
+                <!-- Carte bancaire -->
+                <div class="card" style="display: flex; align-items: flex-start; gap: 16px;">
+                    <div class="card-icon" style="margin-bottom: 0; flex-shrink: 0;">&#128179;</div>
+                    <div>
+                        <div class="card-title">Carte bancaire</div>
+                        <div class="card-desc">Visa, Mastercard, CB. Acceptez toutes les cartes avec 3D Secure 2 automatique. Taux de conversion maximal.</div>
+                    </div>
+                </div>
+                <!-- Apple Pay -->
+                <div class="card" style="display: flex; align-items: flex-start; gap: 16px;">
+                    <div class="card-icon" style="margin-bottom: 0; flex-shrink: 0;">&#63743;</div>
+                    <div>
+                        <div class="card-title">Apple Pay</div>
+                        <div class="card-desc">Paiement biometrique Face ID / Touch ID. Detection automatique sur iPhone et Safari. Zero saisie manuelle.</div>
+                    </div>
+                </div>
+                <!-- Google Pay -->
+                <div class="card" style="display: flex; align-items: flex-start; gap: 16px;">
+                    <div class="card-icon" style="margin-bottom: 0; flex-shrink: 0;">&#128241;</div>
+                    <div>
+                        <div class="card-title">Google Pay</div>
+                        <div class="card-desc">Paiement en un tap sur Chrome et Android. S'affiche automatiquement si le client l'a configure.</div>
+                    </div>
+                </div>
+                <!-- Avantages -->
+                <div class="card" style="display: flex; align-items: flex-start; gap: 16px; border-color: rgba(220,38,38,0.2);">
+                    <div class="card-icon" style="margin-bottom: 0; flex-shrink: 0; background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.2);">&#9889;</div>
+                    <div>
+                        <div class="card-title">Pourquoi c'est un avantage</div>
+                        <div class="card-desc">
+                            <div style="margin-bottom: 6px;">&#10003; Taux de conversion +40% vs paiement classique</div>
+                            <div style="margin-bottom: 6px;">&#10003; Vos clients paient en 3 secondes</div>
+                            <div style="margin-bottom: 6px;">&#10003; Zero friction, zero compte a creer</div>
+                            <div>&#10003; Detection automatique du meilleur moyen</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav">
+        <button class="nav-btn" id="prev">&#8592;</button>
+        <div class="dots" id="dots"></div>
+        <button class="nav-btn" id="next">&#8594;</button>
+    </div>
+
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        const total = slides.length;
+        let current = 0;
+        let animating = false;
+
+        const dotsEl = document.getElementById('dots');
+        const progress = document.getElementById('progress');
+
+        for (let i = 0; i < total; i++) {
+            const d = document.createElement('div');
+            d.className = 'dot' + (i === 0 ? ' active' : '');
+            d.onclick = () => go(i);
+            dotsEl.appendChild(d);
+        }
+
+        function updateProgress() {
+            progress.style.width = ((current + 1) / total * 100) + '%';
+        }
+        updateProgress();
+
+        function go(idx) {
+            if (animating || idx === current) return;
+            animating = true;
+
+            const prev = slides[current];
+            const next = slides[idx];
+
+            // Reset animations
+            next.querySelectorAll('.anim, .anim-scale').forEach(el => {
+                el.style.animation = 'none';
+                el.offsetHeight;
+                el.style.animation = '';
+            });
+
+            prev.classList.add('exit');
+            prev.classList.remove('active');
+
+            setTimeout(() => {
+                next.classList.add('active');
+                prev.classList.remove('exit');
+            }, 100);
+
+            document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+            current = idx;
+            updateProgress();
+
+            setTimeout(() => { animating = false; }, 900);
+        }
+
+        document.getElementById('next').onclick = () => { if (current < total - 1) go(current + 1); };
+        document.getElementById('prev').onclick = () => { if (current > 0) go(current - 1); };
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); if (current < total - 1) go(current + 1); }
+            if (e.key === 'ArrowLeft') { e.preventDefault(); if (current > 0) go(current - 1); }
+            if (e.key === 'Home') { e.preventDefault(); go(0); }
+            if (e.key === 'End') { e.preventDefault(); go(total - 1); }
+        });
+
+        let tx = 0;
+        document.addEventListener('touchstart', e => { tx = e.changedTouches[0].screenX; });
+        document.addEventListener('touchend', e => {
+            const diff = tx - e.changedTouches[0].screenX;
+            if (Math.abs(diff) > 60) {
+                if (diff > 0 && current < total - 1) go(current + 1);
+                else if (diff < 0 && current > 0) go(current - 1);
+            }
+        });
+
+        // Wheel navigation (throttled)
+        let wheelCooldown = false;
+        document.addEventListener('wheel', e => {
+            if (wheelCooldown) return;
+            wheelCooldown = true;
+            if (e.deltaY > 30 && current < total - 1) go(current + 1);
+            else if (e.deltaY < -30 && current > 0) go(current - 1);
+            setTimeout(() => { wheelCooldown = false; }, 1200);
+        }, { passive: true });
+    </script>
+</body>
+</html>

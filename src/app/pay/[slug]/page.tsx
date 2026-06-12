@@ -32,9 +32,9 @@ const getLink = cache(async (slug: string) => {
       },
     });
     if (!link || !link.isActive) return null;
-    // Le propriétaire doit avoir un abonnement actif pour encaisser (sauf admin)
-    const ownerIsAdmin = link.user.role === "ADMIN" || link.user.role === "ADMIN_OWNER";
-    if (link.user.status !== "ACTIVE" || (!ownerIsAdmin && link.user.accessStatus !== "ACTIVE")) return null;
+    // Compte modéré uniquement — le plan (Starter gratuit) ne bloque plus la
+    // page : le plafond mensuel est appliqué à la création du paiement.
+    if (link.user.status !== "ACTIVE") return null;
     return link;
   } catch {
     return null;
@@ -50,6 +50,19 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     description: "Paiement sécurisé par carte bancaire, Apple Pay ou Google Pay.",
     robots: { index: false },
   };
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// Variante assombrie (~35%) pour la seconde teinte du dégradé avatar
+function darkenHex(hex: string): string {
+  const c = (i: number) => Math.max(0, Math.round(parseInt(hex.slice(i, i + 2), 16) * 0.65));
+  return `rgb(${c(1)},${c(3)},${c(5)})`;
 }
 
 export default async function PublicPayPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -85,6 +98,11 @@ export default async function PublicPayPage({ params }: { params: Promise<{ slug
     .toUpperCase()
     .slice(0, 2);
 
+  // Personnalisation du vendeur — brandColor est validé côté API (#RRGGBB),
+  // utilisable sans risque dans des styles inline
+  const brandColor = link.brandColor || "#dc2626";
+  const haloRgba = hexToRgba(brandColor, 0.07);
+
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-[#0a0a0a] px-4 py-6 sm:py-10">
       {/* Connexions Stripe ouvertes dès le premier octet — React hisse ces
@@ -95,17 +113,36 @@ export default async function PublicPayPage({ params }: { params: Promise<{ slug
       <link rel="dns-prefetch" href="https://hooks.stripe.com" />
 
       {/* Halo de fond statique — radial-gradient au lieu de blur() :
-          même rendu, zéro coût GPU sur mobile */}
+          même rendu, zéro coût GPU sur mobile. Teinté à la couleur de marque. */}
       <div className="fixed inset-0 pointer-events-none" aria-hidden="true">
-        <div className="absolute top-1/4 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(220,38,38,0.07),transparent_65%)]" />
+        <div
+          className="absolute top-1/4 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full"
+          style={{ background: `radial-gradient(circle, ${haloRgba}, transparent 65%)` }}
+        />
       </div>
 
       <div className="relative w-full max-w-lg">
-        {/* En-tête bénéficiaire */}
+        {/* En-tête bénéficiaire — logo personnalisé sinon initiales */}
         <div className="mb-5 text-center sm:mb-6">
-          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full gradient-brand shadow-xl shadow-brand-500/20 ring-4 ring-white/[0.05] sm:mb-4 sm:h-20 sm:w-20">
-            <span className="text-xl font-bold text-white sm:text-2xl">{initials}</span>
-          </div>
+          {link.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={link.logoUrl}
+              alt={recipientName}
+              className="mx-auto mb-3 h-16 w-16 rounded-full object-cover shadow-xl ring-4 ring-white/[0.05] sm:mb-4 sm:h-20 sm:w-20"
+              style={{ boxShadow: `0 20px 25px -5px ${hexToRgba(brandColor, 0.2)}` }}
+            />
+          ) : (
+            <div
+              className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full shadow-xl ring-4 ring-white/[0.05] sm:mb-4 sm:h-20 sm:w-20"
+              style={{
+                background: `linear-gradient(135deg, ${brandColor} 0%, ${darkenHex(brandColor)} 100%)`,
+                boxShadow: `0 20px 25px -5px ${hexToRgba(brandColor, 0.2)}`,
+              }}
+            >
+              <span className="text-xl font-bold text-white sm:text-2xl">{initials}</span>
+            </div>
+          )}
           <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">{recipientName}</h1>
           {link.user.username && <p className="mt-0.5 text-sm text-zinc-500">@{link.user.username}</p>}
 
@@ -130,6 +167,9 @@ export default async function PublicPayPage({ params }: { params: Promise<{ slug
         <Card className="border-white/[0.08] p-5 sm:p-8">
           <div className="mb-6 text-center">
             <p className="text-sm text-zinc-400">{link.label}</p>
+            {link.description && (
+              <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-zinc-500">{link.description}</p>
+            )}
             {link.fixedAmount && (
               <p className="mt-3 text-4xl font-bold tracking-tight text-white">
                 {(link.fixedAmount / 100).toFixed(2)} <span className="text-lg text-zinc-500">EUR</span>

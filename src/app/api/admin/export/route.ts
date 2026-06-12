@@ -2,6 +2,14 @@ import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth/admin";
 import { db } from "@/lib/db";
 
+function sanitizeCsvField(value: string): string {
+  const cleaned = value.replace(/,/g, " ").replace(/[\r\n]+/g, " ");
+  if (/^[=+\-@\t\r]/.test(cleaned)) {
+    return "'" + cleaned;
+  }
+  return cleaned;
+}
+
 export async function GET(req: Request) {
   const s = await getAdminSession();
   if (!s) return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
@@ -33,8 +41,8 @@ export async function GET(req: Request) {
       [
         t.id,
         t.createdAt.toISOString(),
-        t.user.name || "",
-        t.user.email,
+        sanitizeCsvField(t.user.name || ""),
+        sanitizeCsvField(t.user.email),
         t.type,
         t.status,
         (t.amount / 100).toFixed(2),
@@ -73,8 +81,8 @@ export async function GET(req: Request) {
       [
         p.id,
         p.createdAt.toISOString(),
-        p.user.name || "",
-        p.user.email,
+        sanitizeCsvField(p.user.name || ""),
+        sanitizeCsvField(p.user.email),
         (p.amount / 100).toFixed(2),
         (p.fees / 100).toFixed(2),
         p.status,
