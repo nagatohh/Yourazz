@@ -21,6 +21,7 @@ export default function AccessPaymentPage() {
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState("");
+  const [price, setPrice] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch("/api/access/status")
@@ -30,6 +31,17 @@ export default function AccessPaymentPage() {
         else setChecking(false);
       })
       .catch(() => setChecking(false));
+
+    apiFetch("/api/access/price")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.amount) {
+          setPrice(
+            new Intl.NumberFormat("fr-FR", { style: "currency", currency: d.currency || "EUR" }).format(d.amount / 100)
+          );
+        }
+      })
+      .catch(() => {});
   }, [router]);
 
   const startCheckout = async () => {
@@ -78,7 +90,7 @@ export default function AccessPaymentPage() {
         <Card className="border-brand-500/15 p-6 sm:p-8">
           <div className="mb-6 text-center">
             <div className="inline-flex items-baseline gap-1">
-              <span className="text-4xl font-bold tracking-tight text-white">29€</span>
+              <span className="text-4xl font-bold tracking-tight text-white">{price ?? "7,99 €"}</span>
               <span className="text-sm text-zinc-500">/mois</span>
             </div>
             <p className="mt-1 text-xs text-zinc-600">Sans engagement — annulable à tout moment</p>
