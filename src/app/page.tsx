@@ -44,7 +44,7 @@ const faq = [
   },
   {
     q: "Combien ça coûte ?",
-    a: "L'inscription est gratuite. Une commission transparente est prélevée par transaction, sans frais cachés ni abonnement. Les retraits vers votre IBAN sont gratuits.",
+    a: "Le plan Starter est gratuit (500 €/mois d'encaissement). Le plan Pro à 7,99 €/mois monte à 1 500 €/mois, et le Business à 19,99 €/mois offre un encaissement illimité. Les retraits vers votre IBAN sont gratuits sur tous les plans.",
   },
   {
     q: "Apple Pay et Google Pay sont-ils vraiment disponibles ?",
@@ -345,6 +345,90 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Tarifs ─────────────────────────────────────────────── */}
+      <section id="pricing" className="relative py-16 sm:py-28 border-t border-white/[0.03]">
+        <div className="mx-auto max-w-5xl px-5 sm:px-6">
+          <div className="text-center mb-12 sm:mb-16">
+            <SectionLabel>Tarifs</SectionLabel>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight">
+              Simple et transparent
+            </h2>
+            <p className="mt-4 mx-auto max-w-md text-sm sm:text-base text-zinc-500">
+              Commencez gratuitement, upgradez quand votre business grandit. Sans engagement.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+            {/* Starter */}
+            <div className="relative rounded-2xl border border-white/[0.06] bg-white/[0.015] p-6 sm:p-7 flex flex-col">
+              <div className="mb-5">
+                <p className="text-[12px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">Starter</p>
+                <p className="text-3xl font-bold text-white">Gratuit</p>
+                <p className="text-[13px] text-zinc-500 mt-1">500 &euro; / mois d&apos;encaissement</p>
+              </div>
+              <ul className="space-y-2.5 flex-1 mb-6">
+                {["Lien de paiement personnalisable", "Carte, Apple Pay, Google Pay", "Dashboard temps réel", "Retraits vers IBAN", "Chargeback Defender"].map((f) => (
+                  <li key={f} className="flex items-center gap-2 text-[13px] text-zinc-400">
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400 text-[10px]">&#10003;</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Link href="/register" className="w-full">
+                <Button variant="outline" className="w-full">Commencer gratuitement</Button>
+              </Link>
+            </div>
+
+            {/* Pro */}
+            <div className="relative rounded-2xl border border-brand-500/25 bg-gradient-to-b from-brand-500/[0.06] to-transparent p-6 sm:p-7 flex flex-col">
+              <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-brand-500 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                Populaire
+              </span>
+              <div className="mb-5">
+                <p className="text-[12px] font-semibold uppercase tracking-wider text-brand-400 mb-2">Pro</p>
+                <p className="text-3xl font-bold text-white">7,99 &euro;<span className="text-sm font-normal text-zinc-500"> /mois</span></p>
+                <p className="text-[13px] text-zinc-500 mt-1">1 500 &euro; / mois d&apos;encaissement</p>
+              </div>
+              <ul className="space-y-2.5 flex-1 mb-6">
+                {["Tout le plan Starter", "Plafond 3x plus élevé", "Multi-devises (EUR, USD, GBP)", "Support prioritaire", "Logo personnalisé"].map((f) => (
+                  <li key={f} className="flex items-center gap-2 text-[13px] text-zinc-400">
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400 text-[10px]">&#10003;</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Link href="/register" className="w-full">
+                <Button className="w-full glow-md">Choisir Pro</Button>
+              </Link>
+            </div>
+
+            {/* Business */}
+            <div className="relative rounded-2xl border border-white/[0.06] bg-white/[0.015] p-6 sm:p-7 flex flex-col">
+              <div className="mb-5">
+                <p className="text-[12px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">Business</p>
+                <p className="text-3xl font-bold text-white">19,99 &euro;<span className="text-sm font-normal text-zinc-500"> /mois</span></p>
+                <p className="text-[13px] text-zinc-500 mt-1">Encaissement illimité</p>
+              </div>
+              <ul className="space-y-2.5 flex-1 mb-6">
+                {["Tout le plan Pro", "Aucun plafond mensuel", "Statistiques avancées", "Accompagnement dédié", "Accès API"].map((f) => (
+                  <li key={f} className="flex items-center gap-2 text-[13px] text-zinc-400">
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400 text-[10px]">&#10003;</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Link href="/register" className="w-full">
+                <Button variant="outline" className="w-full">Choisir Business</Button>
+              </Link>
+            </div>
+          </div>
+
+          <p className="mt-6 text-center text-[12px] text-zinc-600">
+            Tous les plans incluent Apple Pay, Google Pay, Chargeback Defender et les retraits sans frais.
+          </p>
+        </div>
+      </section>
+
       {/* ── FAQ ──────────────────────────────────────────────── */}
       <section id="faq" className="relative py-16 sm:py-28 border-t border-white/[0.03]">
         <div className="mx-auto max-w-3xl px-5 sm:px-6">
@@ -414,6 +498,7 @@ export default function LandingPage() {
                 <li><Link href="#payments" className="hover:text-zinc-300 transition-colors">Moyens de paiement</Link></li>
                 <li><Link href="#dashboard" className="hover:text-zinc-300 transition-colors">Dashboard</Link></li>
                 <li><Link href="#security" className="hover:text-zinc-300 transition-colors">Sécurité</Link></li>
+                <li><Link href="#pricing" className="hover:text-zinc-300 transition-colors">Tarifs</Link></li>
                 <li><Link href="/register" className="hover:text-zinc-300 transition-colors">Créer un compte</Link></li>
               </ul>
             </div>

@@ -16,7 +16,7 @@ model User {
   username         String?    @unique
   role             Role       @default(USER)
   status           UserStatus @default(ACTIVE)
-  accessStatus     AccessStatus @default(PENDING_PAYMENT)
+  accessStatus     AccessStatus @default(ACTIVE)
   emailVerified    Boolean    @default(false)
   stripeAccountId  String?    @unique
   stripeCustomerId String?    @unique
@@ -24,6 +24,10 @@ model User {
   payoutsEnabled   Boolean    @default(false)
   dailyVolume      Int        @default(0)
   monthlyVolume    Int        @default(0)
+  plan             PlanTier   @default(STARTER)
+  totpSecret       String?
+  totpEnabled      Boolean    @default(false)
+  totpBackupCodes  Json?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
@@ -40,10 +44,36 @@ model User {
   emailVerifications  EmailVerification[]
   accessSubscription  AccessSubscription?
   accessPayments      AccessPayment[]
+  notifications       Notification[]
 
   @@index([email])
   @@index([username])
   @@index([accessStatus])
+}
+
+// Plan tarifaire : plafond d'encaissement mensuel.
+// STARTER gratuit (500€/mois), PRO 7.99€ (1500€/mois), BUSINESS 19.99€ (illimité).
+// Mis à jour UNIQUEMENT par webhook Stripe (comme accessStatus).
+enum PlanTier {
+  STARTER
+  PRO
+  BUSINESS
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String?
+  href      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([createdAt])
 }
 
 // Statut d'accès à la plateforme (abonnement Yourazz Access).
@@ -239,6 +269,9 @@ model PaymentLink {
   userId      String
   slug        String   @unique
   label       String   @default("Paiement")
+  description String?
+  brandColor  String?
+  logoUrl     String?
   fixedAmount Int?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())

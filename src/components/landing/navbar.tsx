@@ -10,6 +10,7 @@ const links = [
   { href: "#payments", label: "Moyens de paiement" },
   { href: "#dashboard", label: "Dashboard" },
   { href: "#security", label: "Sécurité" },
+  { href: "#pricing", label: "Tarifs" },
   { href: "#faq", label: "FAQ" },
 ];
 
@@ -56,7 +57,7 @@ export function LandingNavbar() {
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <Link href="/login" className="hidden sm:block">
+            <Link href="/login">
               <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-white">
                 Connexion
               </Button>
