@@ -57,7 +57,9 @@ export function StripeCheckout(props: CheckoutProps) {
     window.addEventListener("pagehide", abandon);
     return () => {
       window.removeEventListener("pagehide", abandon);
-      abandon();
+      // Ne pas appeler abandon() au démontage : le composant se démonte aussi
+      // quand le paiement réussit (redirection), ce qui annulerait un paiement valide.
+      // Le beacon "pagehide" + le timeout serveur de 30min couvrent les vrais abandons.
     };
   }, [transactionId]);
 
@@ -228,12 +230,15 @@ function CheckoutForm({ amount, transactionId, onSuccess, onError, submittedRef,
 
     submittedRef.current = true;
 
+    // Apple Pay / Google Pay redirigent toujours vers return_url, le flag
+    // redirect:"if_required" est ignoré pour les wallets — on force "always"
+    // pour que Stripe gère la redirection proprement.
     const { error: confirmError } = await stripe.confirmPayment({
       elements,
       confirmParams: {
         return_url: `${window.location.origin}/payment/success?tx=${transactionId}`,
       },
-      redirect: "if_required",
+      redirect: "always",
     });
 
     if (confirmError) {
@@ -242,6 +247,7 @@ function CheckoutForm({ amount, transactionId, onSuccess, onError, submittedRef,
       setError(confirmError.message || "Paiement refusé");
       onError(confirmError.message || "Paiement refusé");
     } else {
+      // Ce bloc n'est atteint que si Stripe n'a pas redirigé (rare)
       completedRef.current = true;
       event.complete("success");
       onSuccess(transactionId);
