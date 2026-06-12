@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { db } from "@/lib/db";
-import { confirmPayin, failPayin } from "@/lib/services/ledger";
+import { confirmPayin, failPayin, confirmPayout, failPayout } from "@/lib/services/ledger";
 import { confirmEvidence, failEvidence, handleDispute } from "@/lib/services/chargeback-defender";
+import { reversePlatformTransfer } from "@/lib/services/stripe-connect";
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -13,17 +14,28 @@ export async function POST(req: Request) {
     const stripe = getStripe();
     const body = await req.text();
     const sig = req.headers.get("stripe-signature");
-    const secret = process.env.STRIPE_WEBHOOK_SECRET;
+    // Deux endpoints Stripe pointent ici : "votre compte" (paiements, abonnements)
+    // et "comptes connectés" (payouts des users, account.updated). Chacun a son
+    // propre secret de signature — on essaie les deux.
+    const secrets = [process.env.STRIPE_WEBHOOK_SECRET, process.env.STRIPE_CONNECT_WEBHOOK_SECRET].filter(
+      (s): s is string => !!s
+    );
 
-    if (!sig || !secret) {
+    if (!sig || secrets.length === 0) {
       console.error("STRIPE_WEBHOOK: Missing signature or secret");
       return NextResponse.json({ error: "Configuration manquante" }, { status: 500 });
     }
 
-    let event: Stripe.Event;
-    try {
-      event = stripe.webhooks.constructEvent(body, sig, secret);
-    } catch (err) {
+    let event: Stripe.Event | null = null;
+    for (const secret of secrets) {
+      try {
+        event = stripe.webhooks.constructEvent(body, sig, secret);
+        break;
+      } catch {
+        // mauvais secret pour cet endpoint — on tente le suivant
+      }
+    }
+    if (!event) {
       await db.securityLog.create({
         data: { action: "STRIPE_WEBHOOK_INVALID_SIGNATURE", severity: "WARNING" },
       });
@@ -272,48 +284,42 @@ export async function POST(req: Request) {
       }
 
       case "payout.paid": {
-        const payout = await db.payout.findUnique({ where: { providerPayoutId: obj.id } });
-        if (payout && payout.status !== "PAID") {
-          await db.payout.update({
-            where: { id: payout.id },
-            data: { status: "PAID" },
-          });
-          await db.auditLog.create({
-            data: { userId: payout.userId, action: "PAYOUT_PAID", target: payout.id },
-          });
-        }
+        // Ledger : payout PAID + transaction SUCCEEDED, idempotent
+        await confirmPayout(obj.id);
         break;
       }
 
-      case "payout.failed": {
-        const payout = await db.payout.findUnique({ where: { providerPayoutId: obj.id } });
-        if (payout && payout.status !== "FAILED") {
-          await db.payout.update({
-            where: { id: payout.id },
-            data: { status: "FAILED", failureReason: obj.failure_message || obj.failure_code || "Échec du retrait" },
-          });
-          await db.auditLog.create({
-            data: {
-              userId: payout.userId,
-              action: "PAYOUT_FAILED",
-              target: payout.id,
-              metadata: { reason: obj.failure_message, code: obj.failure_code },
-            },
-          });
-        }
-        break;
-      }
-
+      case "payout.failed":
       case "payout.canceled": {
-        const payout = await db.payout.findUnique({ where: { providerPayoutId: obj.id } });
-        if (payout && payout.status !== "CANCELLED") {
-          await db.payout.update({
-            where: { id: payout.id },
-            data: { status: "CANCELLED" },
-          });
-          await db.auditLog.create({
-            data: { userId: payout.userId, action: "PAYOUT_CANCELLED", target: payout.id },
-          });
+        const reason = obj.failure_message || obj.failure_code || (event.type === "payout.canceled" ? "Retrait annulé" : "Échec du retrait");
+
+        // failPayout est idempotent : il re-crédite le wallet seulement à la
+        // première transition. Le payout retourné porte l'ANCIEN statut, ce qui
+        // permet de savoir si cette invocation a réellement fait la transition.
+        const before = await failPayout(obj.id, reason);
+        const didTransition = before && before.status !== "FAILED";
+
+        // L'argent était déjà sur le compte Connect du user (transfer fait au
+        // moment du retrait) : on le ramène sur la plateforme pour rester
+        // cohérent avec le wallet re-crédité.
+        if (didTransition) {
+          const tx = await db.transaction.findUnique({ where: { providerTransactionId: obj.id } });
+          const transferId = (tx?.metadata as any)?.transferId;
+          if (transferId) {
+            try {
+              await reversePlatformTransfer(transferId);
+            } catch (revErr: any) {
+              console.error("PAYOUT_FAILED_REVERSAL_ERROR:", revErr?.message || revErr);
+              await db.guardianLog.create({
+                data: {
+                  level: "CRITICAL",
+                  source: "payout",
+                  message: `Reversal impossible après payout ${event.type} — wallet re-crédité mais fonds toujours sur le compte Connect. payoutId=${obj.id} transferId=${transferId}`,
+                  metadata: { payoutId: obj.id, transferId },
+                },
+              });
+            }
+          }
         }
         break;
       }
