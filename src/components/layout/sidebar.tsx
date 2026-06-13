@@ -24,6 +24,8 @@ import {
   ShieldAlert,
   Webhook,
   Gem,
+  Bitcoin,
+  KeyRound,
 } from "lucide-react";
 
 const navItems = [
@@ -40,6 +42,8 @@ const navItems = [
 const adminItems = [
   { href: "/admin", label: "Vue d'ensemble", icon: Users },
   { href: "/admin/payments", label: "Paiements", icon: CreditCard },
+  { href: "/admin/crypto-payments", label: "Paiements crypto", icon: Bitcoin },
+  { href: "/admin/activation-keys", label: "Clés d'activation", icon: KeyRound },
   { href: "/admin/chargeback-defender", label: "Chargeback Defender", icon: ShieldAlert },
   { href: "/admin/invitations", label: "Invitations", icon: Mail },
   { href: "/admin/security", label: "Sécurité", icon: Shield },

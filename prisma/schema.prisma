@@ -45,6 +45,8 @@ model User {
   accessSubscription  AccessSubscription?
   accessPayments      AccessPayment[]
   notifications       Notification[]
+  cryptoPayments      CryptoPayment[]
+  activationKeys      ActivationKey[]
 
   @@index([email])
   @@index([username])
@@ -640,5 +642,94 @@ model AdminAlert {
 
   @@index([type])
   @@index([read])
+  @@index([createdAt])
+}
+
+// ─── ACCÈS PAR CRYPTOMONNAIE (LITECOIN) ──────────────────────────────────────
+// Flux d'accès payant alternatif à Stripe : l'utilisateur paie en LTC, soumet
+// son TXID, un admin vérifie le paiement puis émet une clé d'activation unique.
+// Aucun statut d'accès n'est modifié sans action admin explicite.
+
+enum CryptoPaymentStatus {
+  PENDING  // TXID soumis, en attente de vérification par un admin
+  RECEIVED // Paiement confirmé par l'admin
+  REJECTED // TXID invalide ou paiement non reçu
+}
+
+model CryptoPayment {
+  id         String              @id @default(cuid())
+  userId     String
+  currency   String              @default("LTC")
+  address    String // adresse de réception affichée au moment du paiement
+  txid       String // identifiant de transaction blockchain soumis par l'utilisateur
+  amount     String? // montant déclaré (string pour préserver la précision décimale)
+  status     CryptoPaymentStatus @default(PENDING)
+  note       String? // note interne de l'admin
+  reviewedBy String? // id de l'admin ayant traité la demande
+  reviewedAt DateTime?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activationKey ActivationKey?
+
+  @@unique([currency, txid]) // empêche la double-soumission du même TXID
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum ActivationKeyStatus {
+  ACTIVE  // émise, non utilisée, valide
+  USED    // déjà utilisée pour activer un compte (usage unique)
+  REVOKED // révoquée par un admin
+}
+
+model ActivationKey {
+  id              String              @id @default(cuid())
+  key             String              @unique // forme lisible : YRZ-XXXXX-XXXXX-XXXXX-XXXXX
+  keyHash         String              @unique // sha256(canonical(key)) pour la recherche à la validation
+  userId          String? // compte lié (recommandé) ; sinon lié au premier compte qui l'utilise
+  status          ActivationKeyStatus @default(ACTIVE)
+  createdBy       String // id de l'admin qui a généré la clé
+  cryptoPaymentId String?             @unique // paiement crypto à l'origine de la clé
+  note            String?
+  expiresAt       DateTime?
+  usedAt          DateTime?
+  usedByIp        String?
+  revokedAt       DateTime?
+  revokedBy       String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  user           User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  cryptoPayment  CryptoPayment?  @relation(fields: [cryptoPaymentId], references: [id], onDelete: SetNull)
+  activationLogs ActivationLog[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Journal de toutes les activités liées aux clés (génération, validation,
+// tentative invalide, révocation). Conservé même si la clé est supprimée.
+model ActivationLog {
+  id        String   @id @default(cuid())
+  keyId     String?
+  userId    String?
+  email     String?
+  action    String // KEY_GENERATED | KEY_REDEEMED | KEY_REVOKED | KEY_REACTIVATED | KEY_INVALID_ATTEMPT
+  success   Boolean  @default(true)
+  ipAddress String?
+  userAgent String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  key ActivationKey? @relation(fields: [keyId], references: [id], onDelete: SetNull)
+
+  @@index([keyId])
+  @@index([userId])
   @@index([createdAt])
 }
