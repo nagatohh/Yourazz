@@ -36,14 +36,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email déjà utilisé" }, { status: 409 });
     }
 
-    // Accès conditionné au paiement : un nouvel utilisateur naît en attente de
-    // paiement et devra activer une clé. Les admins ne sont pas concernés.
-    const isAdminRole = invitation.role === "ADMIN" || invitation.role === "ADMIN_OWNER";
-    const accessStatus = isAdminRole ? "ACTIVE" : "PENDING_PAYMENT";
-
+    // Plan Starter gratuit et immédiat : le compte naît actif (accessStatus
+    // ACTIVE par défaut, plan STARTER). Pro/Business s'obtiennent ensuite via
+    // paiement (Stripe ou LTC) puis activation d'une clé typée.
     const user = await db.$transaction(async (prisma) => {
       const u = await prisma.user.create({
-        data: { email, passwordHash: await hashPassword(password), name, role: invitation.role, emailVerified: false, accessStatus },
+        data: { email, passwordHash: await hashPassword(password), name, role: invitation.role, emailVerified: false },
       });
       await prisma.wallet.create({ data: { userId: u.id } });
       const slug = (name || "pay").toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").slice(0, 20) + "-" + u.id.slice(-4);

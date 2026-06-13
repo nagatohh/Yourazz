@@ -6,9 +6,9 @@ import { logActivation } from "@/lib/services/crypto-access";
 
 export const dynamic = "force-dynamic";
 
-// Révocation / réactivation d'une clé.
-//   revoke     : ACTIVE → REVOKED (la clé ne pourra plus être utilisée).
-//   reactivate : REVOKED → ACTIVE (impossible sur une clé déjà USED).
+// Suspension / réactivation d'une clé.
+//   revoke     : ACTIVE/EXPIRED → SUSPENDED (la clé ne pourra plus être utilisée).
+//   reactivate : SUSPENDED/REVOKED/EXPIRED → ACTIVE (impossible sur une clé USED).
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const admin = await getAdminSession();
@@ -25,24 +25,34 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     if (action === "revoke") {
-      if (key.status === "REVOKED") return NextResponse.json({ error: "Clé déjà révoquée" }, { status: 400 });
+      if (key.status === "SUSPENDED" || key.status === "REVOKED") {
+        return NextResponse.json({ error: "Clé déjà suspendue" }, { status: 400 });
+      }
       const updated = await db.activationKey.update({
         where: { id },
-        data: { status: "REVOKED", revokedAt: new Date(), revokedBy: admin.userId },
+        data: { status: "SUSPENDED", revokedAt: new Date(), revokedBy: admin.userId },
         select: { id: true, status: true },
       });
-      await logActivation({ action: "KEY_REVOKED", keyId: id, userId: key.userId });
+      await logActivation({ action: "KEY_SUSPENDED", keyId: id, userId: key.userId });
       await db.auditLog.create({
-        data: { userId: admin.userId, action: "ACTIVATION_KEY_REVOKED", target: id },
+        data: { userId: admin.userId, action: "ACTIVATION_KEY_SUSPENDED", target: id },
       });
       return NextResponse.json({ key: updated });
     }
 
     // action === "reactivate"
     if (key.status === "ACTIVE") return NextResponse.json({ error: "Clé déjà active" }, { status: 400 });
+    const expiredPast = key.expiresAt && key.expiresAt.getTime() < Date.now();
     const updated = await db.activationKey.update({
       where: { id },
-      data: { status: "ACTIVE", revokedAt: null, revokedBy: null },
+      data: {
+        status: "ACTIVE",
+        revokedAt: null,
+        revokedBy: null,
+        // une clé expirée réactivée sans nouvelle échéance redeviendrait
+        // immédiatement inutilisable → on lève l'expiration.
+        expiresAt: expiredPast ? null : key.expiresAt,
+      },
       select: { id: true, status: true },
     });
     await logActivation({ action: "KEY_REACTIVATED", keyId: id, userId: key.userId });

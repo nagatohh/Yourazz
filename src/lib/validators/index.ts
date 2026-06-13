@@ -51,6 +51,7 @@ export const requestPayoutSchema = z.object({
 // ─── Accès par cryptomonnaie (Litecoin) ──────────────────────────────────────
 
 export const submitCryptoPaymentSchema = z.object({
+  plan: z.enum(["PRO", "BUSINESS"]),
   txid: z
     .string()
     .trim()
@@ -65,10 +66,11 @@ export const submitCryptoPaymentSchema = z.object({
 });
 
 export const activateKeySchema = z.object({
-  key: z.string().trim().min(8, "Clé d'activation requise").max(64),
+  key: z.string().trim().min(6, "Clé d'activation requise").max(64),
 });
 
 export const generateKeySchema = z.object({
+  plan: z.enum(["PRO", "BUSINESS"]),
   userId: z.string().min(1).optional(),
   email: z.string().email().optional(),
   cryptoPaymentId: z.string().min(1).optional(),
@@ -83,6 +85,10 @@ export const reviewCryptoPaymentSchema = z.object({
 
 export const updateKeySchema = z.object({
   action: z.enum(["revoke", "reactivate"]),
+});
+
+export const updateUserPlanSchema = z.object({
+  plan: z.enum(["STARTER", "PRO", "BUSINESS"]),
 });
 
 export const addBankAccountSchema = z.object({

@@ -49,6 +49,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: result.message, code: result.code }, { status: 400 });
     }
 
+    const planName = result.plan === "BUSINESS" ? "Business" : "Pro";
+
     await db.securityLog.create({
       data: {
         userId: session.userId,
@@ -56,19 +58,19 @@ export async function POST(req: Request) {
         ipAddress: ip,
         userAgent,
         severity: "INFO",
-        metadata: { keyId: result.keyId },
+        metadata: { keyId: result.keyId, plan: result.plan },
       },
     });
 
     await createNotification({
       userId: session.userId,
       type: "PAYMENT_RECEIVED",
-      title: "Accès activé",
-      body: "Votre clé d'activation est valide. Bienvenue sur Yourazz !",
-      href: "/dashboard",
+      title: `Plan ${planName} activé`,
+      body: `Votre clé est valide. Votre compte est maintenant en plan ${planName}.`,
+      href: "/dashboard/plan",
     });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, plan: result.plan });
   } catch (e: unknown) {
     if ((e as { name?: string })?.name === "ZodError") {
       return NextResponse.json({ error: "Clé d'activation invalide." }, { status: 400 });

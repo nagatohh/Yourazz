@@ -44,6 +44,7 @@ const adminItems = [
   { href: "/admin/payments", label: "Paiements", icon: CreditCard },
   { href: "/admin/crypto-payments", label: "Paiements crypto", icon: Bitcoin },
   { href: "/admin/activation-keys", label: "Clés d'activation", icon: KeyRound },
+  { href: "/admin/subscriptions", label: "Abonnements", icon: Gem },
   { href: "/admin/chargeback-defender", label: "Chargeback Defender", icon: ShieldAlert },
   { href: "/admin/invitations", label: "Invitations", icon: Mail },
   { href: "/admin/security", label: "Sécurité", icon: Shield },

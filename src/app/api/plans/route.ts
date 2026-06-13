@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
+import type { PlanTier } from "@prisma/client";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { PLANS, getMonthlyVolumeEur } from "@/lib/services/plans";
+import { PLAN_META, getPlanPermissions } from "@/lib/services/permissions";
 
 export const dynamic = "force-dynamic";
+
+// Montant LTC configuré pour un plan (vide si non configuré).
+function ltcAmount(tier: PlanTier): string {
+  if (tier === "STARTER") return "";
+  return (process.env[`LTC_PRICE_${tier}`] || "").trim();
+}
 
 export async function GET() {
   try {
@@ -26,12 +34,18 @@ export async function GET() {
       isAdmin,
       monthlyUsed: used,
       monthlyCap: isAdmin ? null : PLANS[user.plan].monthlyCap,
+      permissions: getPlanPermissions(user.plan, { isAdmin }),
       subscription: user.accessSubscription,
-      plans: Object.entries(PLANS).map(([tier, p]) => ({
+      plans: (Object.entries(PLANS) as [PlanTier, (typeof PLANS)[PlanTier]][]).map(([tier, p]) => ({
         tier,
         name: p.name,
         price: p.price,
         monthlyCap: p.monthlyCap,
+        accent: PLAN_META[tier].accent,
+        tagline: PLAN_META[tier].tagline,
+        requiresKey: PLAN_META[tier].requiresKey,
+        benefits: PLAN_META[tier].benefits,
+        ltcAmount: ltcAmount(tier),
       })),
     });
   } catch (e) {

@@ -8,8 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Bitcoin, Check, X, Copy, KeyRound, AlertTriangle, Loader2 } from "lucide-react";
 
+type Plan = "PRO" | "BUSINESS";
+
 interface PaymentRow {
   id: string;
+  plan: Plan;
+  reference: string | null;
   currency: string;
   address: string;
   txid: string;
@@ -19,13 +23,17 @@ interface PaymentRow {
   reviewedAt: string | null;
   createdAt: string;
   user: { id: string; email: string; name: string | null } | null;
-  activationKey: { id: string; key: string; status: string } | null;
+  activationKey: { id: string; key: string; status: string; plan: Plan } | null;
 }
 
 function PaymentStatus({ status }: { status: PaymentRow["status"] }) {
   if (status === "RECEIVED") return <Badge variant="success">Reçu</Badge>;
   if (status === "REJECTED") return <Badge variant="error">Refusé</Badge>;
   return <Badge variant="warning">En attente</Badge>;
+}
+
+function PlanBadge({ plan }: { plan: Plan }) {
+  return <Badge variant={plan === "BUSINESS" ? "warning" : "info"}>{plan === "BUSINESS" ? "Business" : "Pro"}</Badge>;
 }
 
 export default function AdminCryptoPaymentsPage() {
@@ -169,7 +177,7 @@ export default function AdminCryptoPaymentsPage() {
             <div key={p.id} className="px-4 py-3.5">
               <div className="flex items-center justify-between gap-2">
                 <p className="min-w-0 truncate text-sm text-zinc-300">{p.user?.email || "—"}</p>
-                <PaymentStatus status={p.status} />
+                <div className="flex flex-shrink-0 items-center gap-1.5"><PlanBadge plan={p.plan} /><PaymentStatus status={p.status} /></div>
               </div>
               <p className="mt-1 truncate font-mono text-[11px] text-zinc-500">{p.txid}</p>
               <p className="mt-0.5 text-[11px] text-zinc-600">
@@ -200,6 +208,7 @@ export default function AdminCryptoPaymentsPage() {
             <thead>
               <tr className="border-b border-white/[0.06] text-left text-xs text-zinc-500">
                 <th className="px-6 py-3 font-medium">Utilisateur</th>
+                <th className="px-6 py-3 font-medium">Plan</th>
                 <th className="px-6 py-3 font-medium">TXID</th>
                 <th className="px-6 py-3 font-medium">Montant</th>
                 <th className="px-6 py-3 font-medium">Statut</th>
@@ -214,6 +223,7 @@ export default function AdminCryptoPaymentsPage() {
                     <p className="text-zinc-300">{p.user?.name || "—"}</p>
                     <p className="text-xs text-zinc-500">{p.user?.email}</p>
                   </td>
+                  <td className="px-6 py-4"><PlanBadge plan={p.plan} />{p.reference && <span className="mt-1 block font-mono text-[10px] text-zinc-600">{p.reference}</span>}</td>
                   <td className="max-w-[220px] px-6 py-4">
                     <span className="block truncate font-mono text-xs text-zinc-400" title={p.txid}>{p.txid}</span>
                     {p.activationKey && (
@@ -242,7 +252,7 @@ export default function AdminCryptoPaymentsPage() {
                 </tr>
               ))}
               {payments.length === 0 && (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-zinc-500">Aucune demande</td></tr>
+                <tr><td colSpan={7} className="px-6 py-8 text-center text-zinc-500">Aucune demande</td></tr>
               )}
             </tbody>
           </table>

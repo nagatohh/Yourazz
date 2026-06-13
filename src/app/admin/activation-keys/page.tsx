@@ -9,10 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { KeyRound, Plus, Copy, Check, Ban, RotateCcw, Bitcoin, AlertTriangle, Loader2 } from "lucide-react";
 
+type Plan = "PRO" | "BUSINESS";
+type KeyStatusType = "ACTIVE" | "USED" | "SUSPENDED" | "EXPIRED" | "REVOKED";
+
 interface KeyRow {
   id: string;
   key: string;
-  status: "ACTIVE" | "USED" | "REVOKED";
+  plan: Plan;
+  status: KeyStatusType;
   note: string | null;
   expiresAt: string | null;
   usedAt: string | null;
@@ -22,10 +26,21 @@ interface KeyRow {
   user: { id: string; email: string; name: string | null } | null;
 }
 
-function KeyStatus({ status }: { status: KeyRow["status"] }) {
-  if (status === "USED") return <Badge variant="info">Utilisée</Badge>;
-  if (status === "REVOKED") return <Badge variant="error">Révoquée</Badge>;
+function effectiveStatus(k: KeyRow): KeyStatusType {
+  if (k.status === "ACTIVE" && k.expiresAt && new Date(k.expiresAt) < new Date()) return "EXPIRED";
+  return k.status;
+}
+
+function KeyStatus({ k }: { k: KeyRow }) {
+  const s = effectiveStatus(k);
+  if (s === "USED") return <Badge variant="info">Utilisée</Badge>;
+  if (s === "SUSPENDED" || s === "REVOKED") return <Badge variant="error">Suspendue</Badge>;
+  if (s === "EXPIRED") return <Badge variant="warning">Expirée</Badge>;
   return <Badge variant="success">Active</Badge>;
+}
+
+function PlanBadge({ plan }: { plan: Plan }) {
+  return <Badge variant={plan === "BUSINESS" ? "warning" : "info"}>{plan === "BUSINESS" ? "Business" : "Pro"}</Badge>;
 }
 
 export default function AdminActivationKeysPage() {
@@ -33,12 +48,13 @@ export default function AdminActivationKeysPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [plan, setPlan] = useState<Plan>("PRO");
   const [email, setEmail] = useState("");
   const [expiresInDays, setExpiresInDays] = useState("");
   const [note, setNote] = useState("");
   const [generating, setGenerating] = useState(false);
   const [formError, setFormError] = useState("");
-  const [justCreated, setJustCreated] = useState<string | null>(null);
+  const [justCreated, setJustCreated] = useState<{ key: string; plan: Plan } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -64,7 +80,7 @@ export default function AdminActivationKeysPage() {
     setJustCreated(null);
     setGenerating(true);
     try {
-      const payload: Record<string, unknown> = {};
+      const payload: Record<string, unknown> = { plan };
       if (email.trim()) payload.email = email.trim();
       if (expiresInDays.trim()) payload.expiresInDays = Number(expiresInDays);
       if (note.trim()) payload.note = note.trim();
@@ -79,7 +95,7 @@ export default function AdminActivationKeysPage() {
         setFormError(data.error || "Échec de la génération");
         return;
       }
-      setJustCreated(data.key.key);
+      setJustCreated({ key: data.key.key, plan: data.key.plan });
       setEmail("");
       setExpiresInDays("");
       setNote("");
@@ -102,7 +118,7 @@ export default function AdminActivationKeysPage() {
   };
 
   const updateKey = async (id: string, action: "revoke" | "reactivate") => {
-    if (action === "revoke" && !confirm("Révoquer cette clé ? Elle ne pourra plus être utilisée.")) return;
+    if (action === "revoke" && !confirm("Suspendre cette clé ? Elle ne pourra plus être utilisée.")) return;
     setBusy(id);
     try {
       const res = await fetch(`/api/admin/activation-keys/${id}`, {
@@ -149,7 +165,7 @@ export default function AdminActivationKeysPage() {
             <KeyRound className="h-6 w-6 text-brand-400" /> Clés d&apos;activation
           </h1>
           <p className="mt-1 text-sm text-zinc-500">
-            Générez, consultez, révoquez ou réactivez les clés d&apos;accès.
+            Générez des clés typées (Pro/Business), suspendez ou réactivez-les.
           </p>
         </div>
         <Link href="/admin/crypto-payments">
@@ -165,7 +181,18 @@ export default function AdminActivationKeysPage() {
           <Plus className="h-5 w-5 text-brand-400" /> Générer une clé
         </CardTitle>
         <form onSubmit={generate} className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-          <div className="min-w-0 flex-1 sm:min-w-[220px]">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-zinc-300">Plan</label>
+            <select
+              value={plan}
+              onChange={(e) => setPlan(e.target.value as Plan)}
+              className="h-11 w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 text-sm text-white sm:w-auto"
+            >
+              <option value="PRO">Pro</option>
+              <option value="BUSINESS">Business</option>
+            </select>
+          </div>
+          <div className="min-w-0 flex-1 sm:min-w-[200px]">
             <Input
               id="key-email"
               label="Email du compte (recommandé)"
@@ -175,7 +202,7 @@ export default function AdminActivationKeysPage() {
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-          <div className="sm:w-40">
+          <div className="sm:w-36">
             <Input
               id="key-expiry"
               label="Expire (jours)"
@@ -187,11 +214,11 @@ export default function AdminActivationKeysPage() {
               onChange={(e) => setExpiresInDays(e.target.value)}
             />
           </div>
-          <div className="min-w-0 flex-1 sm:min-w-[160px]">
+          <div className="min-w-0 flex-1 sm:min-w-[140px]">
             <Input
               id="key-note"
               label="Note (optionnel)"
-              placeholder="ex : remboursement"
+              placeholder="ex : geste commercial"
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />
@@ -203,18 +230,22 @@ export default function AdminActivationKeysPage() {
         </form>
         {formError && <p className="mt-3 text-sm text-red-400">{formError}</p>}
         <p className="mt-3 text-xs text-zinc-500">
-          Sans email, la clé est générique et se liera au premier compte qui l&apos;utilisera.
+          Une clé <span className="font-mono">PRO-…</span> active uniquement le plan Pro, une clé{" "}
+          <span className="font-mono">BUSINESS-…</span> uniquement le plan Business. Sans email, la clé se lie au
+          premier compte qui l&apos;utilise.
         </p>
 
         {justCreated && (
           <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-4">
-            <p className="text-xs text-emerald-300">Clé générée — copiez-la et transmettez-la à l&apos;utilisateur :</p>
+            <p className="flex items-center gap-2 text-xs text-emerald-300">
+              <PlanBadge plan={justCreated.plan} /> Clé générée — copiez-la et transmettez-la à l&apos;utilisateur :
+            </p>
             <div className="mt-2 flex items-stretch gap-2">
               <code className="flex-1 break-all rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 font-mono text-sm text-emerald-300">
-                {justCreated}
+                {justCreated.key}
               </code>
               <button
-                onClick={() => copy("new", justCreated)}
+                onClick={() => copy("new", justCreated.key)}
                 className="flex flex-shrink-0 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 text-zinc-300 hover:bg-white/[0.06] hover:text-white"
                 aria-label="Copier"
               >
@@ -237,19 +268,19 @@ export default function AdminActivationKeysPage() {
             <div key={k.id} className="px-4 py-3.5">
               <div className="flex items-center justify-between gap-2">
                 <code className="min-w-0 truncate font-mono text-xs text-zinc-300">{k.key}</code>
-                <KeyStatus status={k.status} />
+                <div className="flex flex-shrink-0 items-center gap-1.5"><PlanBadge plan={k.plan} /><KeyStatus k={k} /></div>
               </div>
               <p className="mt-1 text-[11px] text-zinc-500">{k.user?.email || "Générique"}</p>
               <div className="mt-2 flex items-center gap-2">
                 <button onClick={() => copy(k.id, k.key)} className="p-1.5 text-zinc-500 hover:text-white" aria-label="Copier">
                   {copiedId === k.id ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
                 </button>
-                {k.status === "ACTIVE" && (
-                  <button onClick={() => updateKey(k.id, "revoke")} disabled={busy === k.id} className="p-1.5 text-zinc-500 hover:text-red-400" aria-label="Révoquer">
+                {effectiveStatus(k) === "ACTIVE" && (
+                  <button onClick={() => updateKey(k.id, "revoke")} disabled={busy === k.id} className="p-1.5 text-zinc-500 hover:text-red-400" aria-label="Suspendre">
                     <Ban className="h-4 w-4" />
                   </button>
                 )}
-                {k.status === "REVOKED" && (
+                {(effectiveStatus(k) === "SUSPENDED" || effectiveStatus(k) === "REVOKED" || effectiveStatus(k) === "EXPIRED") && (
                   <button onClick={() => updateKey(k.id, "reactivate")} disabled={busy === k.id} className="p-1.5 text-zinc-500 hover:text-emerald-400" aria-label="Réactiver">
                     <RotateCcw className="h-4 w-4" />
                   </button>
@@ -266,6 +297,7 @@ export default function AdminActivationKeysPage() {
             <thead>
               <tr className="border-b border-white/[0.06] text-left text-xs text-zinc-500">
                 <th className="px-6 py-3 font-medium">Clé</th>
+                <th className="px-6 py-3 font-medium">Plan</th>
                 <th className="px-6 py-3 font-medium">Compte lié</th>
                 <th className="px-6 py-3 font-medium">Statut</th>
                 <th className="px-6 py-3 font-medium">Expire</th>
@@ -285,21 +317,22 @@ export default function AdminActivationKeysPage() {
                     </div>
                     {k.cryptoPaymentId && <span className="mt-0.5 block text-[11px] text-zinc-600">Paiement crypto</span>}
                   </td>
+                  <td className="px-6 py-4"><PlanBadge plan={k.plan} /></td>
                   <td className="px-6 py-4">
                     <span className="text-zinc-400">{k.user?.email || <span className="text-zinc-600">Générique</span>}</span>
                   </td>
-                  <td className="px-6 py-4"><KeyStatus status={k.status} /></td>
+                  <td className="px-6 py-4"><KeyStatus k={k} /></td>
                   <td className="px-6 py-4 text-zinc-500">
                     {k.expiresAt ? new Date(k.expiresAt).toLocaleDateString("fr-FR") : "—"}
                   </td>
                   <td className="px-6 py-4 text-zinc-500">{new Date(k.createdAt).toLocaleDateString("fr-FR")}</td>
                   <td className="px-6 py-4">
-                    {k.status === "ACTIVE" && (
+                    {effectiveStatus(k) === "ACTIVE" && (
                       <button onClick={() => updateKey(k.id, "revoke")} disabled={busy === k.id} className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-red-400">
-                        <Ban className="h-3.5 w-3.5" /> Révoquer
+                        <Ban className="h-3.5 w-3.5" /> Suspendre
                       </button>
                     )}
-                    {k.status === "REVOKED" && (
+                    {(effectiveStatus(k) === "SUSPENDED" || effectiveStatus(k) === "REVOKED" || effectiveStatus(k) === "EXPIRED") && (
                       <button onClick={() => updateKey(k.id, "reactivate")} disabled={busy === k.id} className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-emerald-400">
                         <RotateCcw className="h-3.5 w-3.5" /> Réactiver
                       </button>
@@ -309,7 +342,7 @@ export default function AdminActivationKeysPage() {
                 </tr>
               ))}
               {keys.length === 0 && (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-zinc-500">Aucune clé</td></tr>
+                <tr><td colSpan={7} className="px-6 py-8 text-center text-zinc-500">Aucune clé</td></tr>
               )}
             </tbody>
           </table>

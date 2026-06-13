@@ -65,11 +65,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       });
     }
 
+    const planForKey = payment.plan === "BUSINESS" ? "BUSINESS" : "PRO";
     const key = await createActivationKey({
+      plan: planForKey,
       createdBy: admin.userId,
       userId: payment.userId,
       cryptoPaymentId: payment.id,
-      note: `Paiement LTC ${payment.txid.slice(0, 12)}…`,
+      note: `Paiement LTC ${planForKey} ${payment.txid.slice(0, 12)}…`,
       ipAddress: ip,
       userAgent,
     });
@@ -92,12 +94,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     await createNotification({
       userId: payment.userId,
       type: "PAYMENT_RECEIVED",
-      title: "Paiement reçu — clé d'activation disponible",
-      body: "Votre paiement est confirmé. Saisissez votre clé d'activation pour débloquer l'accès.",
+      title: `Paiement reçu — clé ${planForKey} disponible`,
+      body: `Votre paiement est confirmé. Saisissez votre clé d'activation pour passer en plan ${planForKey === "BUSINESS" ? "Business" : "Pro"}.`,
       href: "/access/activate",
     });
 
-    return NextResponse.json({ payment: updated, key: key.key });
+    return NextResponse.json({ payment: updated, key: key.key, plan: planForKey });
   } catch (e: unknown) {
     if ((e as { name?: string })?.name === "ZodError") {
       return NextResponse.json({ error: "Données invalides" }, { status: 400 });

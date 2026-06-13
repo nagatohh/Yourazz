@@ -14,13 +14,13 @@ export default function ActivatePage() {
   const [key, setKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [done, setDone] = useState(false);
+  const [activatedPlan, setActivatedPlan] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     const trimmed = key.trim();
-    if (trimmed.length < 8) {
+    if (trimmed.length < 6) {
       setError("Saisissez une clé d'activation valide.");
       return;
     }
@@ -36,14 +36,16 @@ export default function ActivatePage() {
         setError(data.error || "Clé invalide ou déjà utilisée.");
         return;
       }
-      setDone(true);
-      setTimeout(() => router.replace("/dashboard"), 1800);
+      setActivatedPlan(data.plan === "BUSINESS" ? "Business" : "Pro");
+      setTimeout(() => router.replace("/dashboard/plan"), 1900);
     } catch {
       setError("Erreur réseau. Réessayez.");
     } finally {
       setLoading(false);
     }
   };
+
+  const done = activatedPlan !== null;
 
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-[#0a0a0a] px-4">
@@ -57,9 +59,9 @@ export default function ActivatePage() {
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/20">
               <CheckCircle2 className="h-6 w-6 text-emerald-400" />
             </div>
-            <CardTitle>Accès débloqué 🎉</CardTitle>
+            <CardTitle>Plan {activatedPlan} activé 🎉</CardTitle>
             <CardDescription className="mt-2">
-              Votre clé est valide. Redirection vers votre tableau de bord…
+              Votre clé est valide. Votre compte est maintenant en plan {activatedPlan}. Redirection…
             </CardDescription>
           </div>
         ) : (
@@ -68,10 +70,11 @@ export default function ActivatePage() {
               <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-500/10 border border-brand-500/20">
                 <KeyRound className="h-7 w-7 text-brand-400" />
               </div>
-              <CardTitle>Activer votre compte</CardTitle>
+              <CardTitle>Activer votre plan</CardTitle>
               <CardDescription className="mt-2">
-                Saisissez la clé d&apos;activation qui vous a été fournie après vérification
-                de votre paiement.
+                Saisissez la clé <span className="font-mono text-zinc-400">PRO-…</span> ou{" "}
+                <span className="font-mono text-zinc-400">BUSINESS-…</span> fournie après vérification de
+                votre paiement. La clé applique exactement le plan acheté.
               </CardDescription>
             </div>
 
@@ -84,7 +87,7 @@ export default function ActivatePage() {
                   id="key"
                   value={key}
                   onChange={(e) => setKey(e.target.value.toUpperCase())}
-                  placeholder="YRZ-XXXXX-XXXXX-XXXXX-XXXXX"
+                  placeholder="PRO-XXXXX-XXXXX-XXXXX"
                   autoComplete="off"
                   spellCheck={false}
                   autoCapitalize="characters"
@@ -100,14 +103,14 @@ export default function ActivatePage() {
 
               <Button type="submit" disabled={loading} className="w-full" size="lg">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
-                {loading ? "Vérification…" : "Activer mon accès"}
+                {loading ? "Vérification…" : "Activer mon plan"}
               </Button>
             </form>
 
             <p className="mt-5 text-center text-xs text-zinc-600">
               Pas encore payé ?{" "}
-              <Link href="/access/crypto" className="text-brand-400 hover:text-brand-300">
-                Régler l&apos;accès en Litecoin
+              <Link href="/dashboard/plan" className="text-brand-400 hover:text-brand-300">
+                Choisir un plan
               </Link>
             </p>
           </>

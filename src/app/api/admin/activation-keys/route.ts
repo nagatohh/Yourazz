@@ -15,10 +15,8 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const status = url.searchParams.get("status");
-  const where =
-    status === "ACTIVE" || status === "USED" || status === "REVOKED"
-      ? { status: status as ActivationKeyStatus }
-      : {};
+  const valid = ["ACTIVE", "USED", "SUSPENDED", "EXPIRED", "REVOKED"];
+  const where = valid.includes(status ?? "") ? { status: status as ActivationKeyStatus } : {};
 
   const keys = await db.activationKey.findMany({
     where,
@@ -27,6 +25,7 @@ export async function GET(req: Request) {
     select: {
       id: true,
       key: true,
+      plan: true,
       status: true,
       note: true,
       expiresAt: true,
@@ -49,7 +48,7 @@ export async function POST(req: Request) {
     if (!admin) return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
 
     const body = await req.json();
-    const { userId, email, cryptoPaymentId, expiresInDays, note } = generateKeySchema.parse(body);
+    const { plan, userId, email, cryptoPaymentId, expiresInDays, note } = generateKeySchema.parse(body);
 
     let targetUserId: string | null = userId ?? null;
     if (!targetUserId && email) {
@@ -62,6 +61,7 @@ export async function POST(req: Request) {
     const userAgent = req.headers.get("user-agent") || null;
 
     const key = await createActivationKey({
+      plan,
       createdBy: admin.userId,
       userId: targetUserId,
       cryptoPaymentId: cryptoPaymentId ?? null,
@@ -76,16 +76,17 @@ export async function POST(req: Request) {
         userId: admin.userId,
         action: "ACTIVATION_KEY_GENERATED",
         target: key.id,
-        metadata: { targetUserId, cryptoPaymentId, expiresInDays },
+        metadata: { plan, targetUserId, cryptoPaymentId, expiresInDays },
       },
     });
 
     if (targetUserId) {
+      const planName = plan === "BUSINESS" ? "Business" : "Pro";
       await createNotification({
         userId: targetUserId,
         type: "PAYMENT_RECEIVED",
-        title: "Clé d'activation disponible",
-        body: "Une clé d'activation a été émise pour votre compte. Saisissez-la pour débloquer l'accès.",
+        title: `Clé ${planName} disponible`,
+        body: `Une clé d'activation ${planName} a été émise pour votre compte. Saisissez-la pour activer votre plan.`,
         href: "/access/activate",
       });
     }
@@ -94,6 +95,7 @@ export async function POST(req: Request) {
       key: {
         id: key.id,
         key: key.key,
+        plan: key.plan,
         status: key.status,
         userId: key.userId,
         expiresAt: key.expiresAt,

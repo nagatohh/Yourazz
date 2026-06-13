@@ -3,12 +3,12 @@ import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 import { submitCryptoPaymentSchema } from "@/lib/validators";
-import { getCryptoAccessConfig, normalizeTxid } from "@/lib/services/crypto-access";
+import { getCryptoAccessConfig, normalizeTxid, generateOrderReference } from "@/lib/services/crypto-access";
 
 export const dynamic = "force-dynamic";
 
-// Soumission du TXID après paiement LTC. Crée une demande de vérification
-// (statut PENDING) que l'admin traitera. Ne débloque aucun accès.
+// Soumission du TXID après paiement LTC d'un abonnement (Pro ou Business).
+// Crée une demande de vérification (statut PENDING) liée au plan acheté.
 export async function POST(req: Request) {
   try {
     const session = await getSession();
@@ -25,17 +25,15 @@ export async function POST(req: Request) {
     const txid = normalizeTxid(parsed.txid);
     const amount = parsed.amount ? parsed.amount : null;
 
-    const cfg = getCryptoAccessConfig();
+    const cfg = getCryptoAccessConfig(parsed.plan);
     if (!cfg.configured) {
       return NextResponse.json({ error: "Le paiement crypto n'est pas encore configuré." }, { status: 503 });
     }
 
-    // Anti-rejeu : un même TXID ne peut être soumis qu'une fois (toutes
-    // soumissions confondues), ce qui empêche deux comptes de revendiquer le
-    // même paiement.
+    // Anti-rejeu : un même TXID ne peut être soumis qu'une fois.
     const existing = await db.cryptoPayment.findUnique({
       where: { currency_txid: { currency: "LTC", txid } },
-      select: { id: true, userId: true, status: true },
+      select: { id: true, userId: true },
     });
     if (existing) {
       const mine = existing.userId === session.userId;
@@ -52,6 +50,8 @@ export async function POST(req: Request) {
     const payment = await db.cryptoPayment.create({
       data: {
         userId: session.userId,
+        plan: parsed.plan,
+        reference: generateOrderReference(),
         currency: "LTC",
         address: cfg.address,
         txid,
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
         ipAddress: ip,
         userAgent,
       },
-      select: { id: true, status: true, txid: true, amount: true, createdAt: true },
+      select: { id: true, plan: true, reference: true, status: true, txid: true, amount: true, createdAt: true },
     });
 
     await db.auditLog.create({
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
         userId: session.userId,
         action: "CRYPTO_PAYMENT_SUBMITTED",
         target: payment.id,
-        metadata: { txid, amount, currency: "LTC" },
+        metadata: { txid, amount, currency: "LTC", plan: parsed.plan },
       },
     });
 
@@ -93,12 +93,14 @@ export async function GET() {
     take: 20,
     select: {
       id: true,
+      plan: true,
+      reference: true,
       txid: true,
       amount: true,
       status: true,
       createdAt: true,
       reviewedAt: true,
-      activationKey: { select: { status: true } },
+      activationKey: { select: { status: true, plan: true } },
     },
   });
 

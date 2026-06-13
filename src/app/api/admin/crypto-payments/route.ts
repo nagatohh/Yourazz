@@ -24,6 +24,8 @@ export async function GET(req: Request) {
     take: 200,
     select: {
       id: true,
+      plan: true,
+      reference: true,
       currency: true,
       address: true,
       txid: true,
@@ -33,7 +35,7 @@ export async function GET(req: Request) {
       reviewedAt: true,
       createdAt: true,
       user: { select: { id: true, email: true, name: true } },
-      activationKey: { select: { id: true, key: true, status: true } },
+      activationKey: { select: { id: true, key: true, status: true, plan: true } },
     },
   });
 

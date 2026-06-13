@@ -659,6 +659,8 @@ enum CryptoPaymentStatus {
 model CryptoPayment {
   id         String              @id @default(cuid())
   userId     String
+  plan       PlanTier            @default(PRO) // abonnement acheté (PRO ou BUSINESS)
+  reference  String?             @unique // référence unique de commande affichée à l'utilisateur
   currency   String              @default("LTC")
   address    String // adresse de réception affichée au moment du paiement
   txid       String // identifiant de transaction blockchain soumis par l'utilisateur
@@ -682,15 +684,18 @@ model CryptoPayment {
 }
 
 enum ActivationKeyStatus {
-  ACTIVE  // émise, non utilisée, valide
-  USED    // déjà utilisée pour activer un compte (usage unique)
-  REVOKED // révoquée par un admin
+  ACTIVE    // émise, non utilisée, valide
+  USED      // déjà utilisée pour activer un compte (usage unique)
+  SUSPENDED // suspendue / révoquée par un admin
+  EXPIRED   // date d'expiration dépassée (désactivation automatique)
+  REVOKED   // (déprécié — conservé pour compat ; remplacé par SUSPENDED)
 }
 
 model ActivationKey {
   id              String              @id @default(cuid())
-  key             String              @unique // forme lisible : YRZ-XXXXX-XXXXX-XXXXX-XXXXX
+  key             String              @unique // forme lisible : PRO-XXXXX-XXXXX-XXXXX / BUSINESS-XXXXX-XXXXX-XXXXX
   keyHash         String              @unique // sha256(canonical(key)) pour la recherche à la validation
+  plan            PlanTier            @default(PRO) // abonnement que la clé active (PRO ou BUSINESS)
   userId          String? // compte lié (recommandé) ; sinon lié au premier compte qui l'utilise
   status          ActivationKeyStatus @default(ACTIVE)
   createdBy       String // id de l'admin qui a généré la clé
