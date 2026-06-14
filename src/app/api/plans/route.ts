@@ -4,13 +4,14 @@ import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { PLANS, getMonthlyVolumeEur } from "@/lib/services/plans";
 import { PLAN_META, getPlanPermissions } from "@/lib/services/permissions";
+import { ltcAmountForEur } from "@/lib/services/ltc-rate";
 
 export const dynamic = "force-dynamic";
 
-// Montant LTC configuré pour un plan (vide si non configuré).
-function ltcAmount(tier: PlanTier): string {
+async function ltcAmount(tier: PlanTier): Promise<string> {
   if (tier === "STARTER") return "";
-  return (process.env[`LTC_PRICE_${tier}`] || "").trim();
+  const amount = await ltcAmountForEur(PLANS[tier].price, process.env[`LTC_PRICE_${tier}`]);
+  return amount || "";
 }
 
 export async function GET() {
@@ -29,14 +30,9 @@ export async function GET() {
 
     const isAdmin = user.role === "ADMIN" || user.role === "ADMIN_OWNER";
 
-    return NextResponse.json({
-      plan: user.plan,
-      isAdmin,
-      monthlyUsed: used,
-      monthlyCap: isAdmin ? null : PLANS[user.plan].monthlyCap,
-      permissions: getPlanPermissions(user.plan, { isAdmin }),
-      subscription: user.accessSubscription,
-      plans: (Object.entries(PLANS) as [PlanTier, (typeof PLANS)[PlanTier]][]).map(([tier, p]) => ({
+    const planEntries = Object.entries(PLANS) as [PlanTier, (typeof PLANS)[PlanTier]][];
+    const plansWithLtc = await Promise.all(
+      planEntries.map(async ([tier, p]) => ({
         tier,
         name: p.name,
         price: p.price,
@@ -45,8 +41,18 @@ export async function GET() {
         tagline: PLAN_META[tier].tagline,
         requiresKey: PLAN_META[tier].requiresKey,
         benefits: PLAN_META[tier].benefits,
-        ltcAmount: ltcAmount(tier),
-      })),
+        ltcAmount: await ltcAmount(tier),
+      }))
+    );
+
+    return NextResponse.json({
+      plan: user.plan,
+      isAdmin,
+      monthlyUsed: used,
+      monthlyCap: isAdmin ? null : PLANS[user.plan].monthlyCap,
+      permissions: getPlanPermissions(user.plan, { isAdmin }),
+      subscription: user.accessSubscription,
+      plans: plansWithLtc,
     });
   } catch (e) {
     console.error("PLANS_GET:", e);

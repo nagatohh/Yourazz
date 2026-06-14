@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Check, Gem, TrendingUp, ExternalLink, AlertCircle, CreditCard, Bitcoin, KeyRound, Lock } from "lucide-react";
 import { FEATURE_LABEL, minPlanForFeature, type Feature } from "@/lib/services/permissions";
 import { PlanBadge } from "@/components/dashboard/premium-gate";
+import { PaymentHistory } from "@/components/dashboard/payment-history";
+import { ApiKeysManager } from "@/components/dashboard/api-keys";
 
 type Tier = "STARTER" | "PRO" | "BUSINESS";
 
@@ -297,6 +299,12 @@ export default function PlanPage() {
           </div>
         </Card>
       )}
+
+      {/* Historique de paiement */}
+      <PaymentHistory />
+
+      {/* Clés API (Business uniquement) */}
+      {info.permissions.apiAccess && <ApiKeysManager />}
     </div>
   );
 }

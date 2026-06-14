@@ -47,6 +47,7 @@ model User {
   notifications       Notification[]
   cryptoPayments      CryptoPayment[]
   activationKeys      ActivationKey[]
+  apiKeys             ApiKey[]
 
   @@index([email])
   @@index([username])
@@ -737,4 +738,25 @@ model ActivationLog {
   @@index([keyId])
   @@index([userId])
   @@index([createdAt])
+}
+
+// ─── CLÉS API (PLAN BUSINESS) ────────────────────────────────────────────────
+// Accès programmatique à l'API Yourazz pour les utilisateurs Business.
+// La clé est hashée (SHA-256) ; seul le préfixe est stocké en clair pour l'affichage.
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String    @default("Default")
+  prefix     String    // 8 premiers caractères (affiché : "yz_abc1…")
+  keyHash    String    @unique // sha256(full key)
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([keyHash])
 }
