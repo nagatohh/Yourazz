@@ -81,6 +81,8 @@ export const generateKeySchema = z.object({
 export const reviewCryptoPaymentSchema = z.object({
   action: z.enum(["confirm", "reject"]),
   note: z.string().max(500).optional(),
+  // override = confirmer malgré un échec de vérification on-chain (tracé).
+  override: z.boolean().optional(),
 });
 
 export const updateKeySchema = z.object({

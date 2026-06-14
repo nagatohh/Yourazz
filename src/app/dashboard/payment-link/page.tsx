@@ -6,6 +6,8 @@ import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LinkCustomizer } from "@/components/dashboard/link-customizer";
+import { PremiumGate } from "@/components/dashboard/premium-gate";
+import { hasFeature } from "@/lib/services/permissions";
 import {
   Copy,
   ExternalLink,
@@ -31,6 +33,7 @@ interface PaymentLink {
 export default function PaymentLinkPage() {
   const [link, setLink] = useState<PaymentLink | null>(null);
   const [username, setUsername] = useState<string | null>(null);
+  const [me, setMe] = useState<{ plan: "STARTER" | "PRO" | "BUSINESS"; isAdmin: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [profileCopied, setProfileCopied] = useState(false);
@@ -43,9 +46,21 @@ export default function PaymentLinkPage() {
 
     apiFetch("/api/auth/me")
       .then((r) => r.json())
-      .then((d) => setUsername(d.user?.username || null))
+      .then((d) => {
+        setUsername(d.user?.username || null);
+        if (d.user) {
+          setMe({
+            plan: d.user.plan,
+            isAdmin: d.user.role === "ADMIN" || d.user.role === "ADMIN_OWNER",
+          });
+        }
+      })
       .catch(() => {});
   }, []);
+
+  // Personnalisation (logo/couleur) réservée aux plans Pro/Business.
+  // Tant que le profil n'est pas chargé, on n'affiche pas le verrou (pas de flash).
+  const canBrand = me ? hasFeature(me.plan, "customLogo", { isAdmin: me.isAdmin }) : true;
 
   const fullUrl = link ? `${window.location.origin}/pay/${link.slug}` : "";
   const profileUrl = username ? `${window.location.origin}/@${username}` : "";
@@ -207,11 +222,13 @@ export default function PaymentLinkPage() {
             </Card>
           )}
 
-          {/* Personnalisation de la page publique */}
-          <LinkCustomizer
-            link={link}
-            onSaved={(updated) => setLink((prev) => (prev ? { ...prev, ...updated } : prev))}
-          />
+          {/* Personnalisation de la page publique — verrouillée hors Pro/Business */}
+          <PremiumGate unlocked={canBrand} requiredPlan="PRO" featureLabel="Personnalisation de la page">
+            <LinkCustomizer
+              link={link}
+              onSaved={(updated) => setLink((prev) => (prev ? { ...prev, ...updated } : prev))}
+            />
+          </PremiumGate>
 
           {/* Link details */}
           <div className="grid gap-4 sm:grid-cols-3">

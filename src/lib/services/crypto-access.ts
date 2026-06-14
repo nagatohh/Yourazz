@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import type { PlanTier } from "@prisma/client";
 import { db } from "@/lib/db";
 import { PLANS } from "@/lib/services/plans";
+import { ltcAmountForEur } from "@/lib/services/ltc-rate";
 
 /**
  * Abonnements Yourazz payés en Litecoin (LTC).
@@ -36,11 +37,14 @@ export interface CryptoAccessConfig {
 /**
  * Config LTC d'un plan. Adresse : `LTC_ADDRESS_PRO`/`LTC_ADDRESS_BUSINESS` si
  * définie (adresse distincte par plan), sinon l'adresse partagée `LTC_ADDRESS`.
- * Montant LTC : `LTC_PRICE_PRO`/`LTC_PRICE_BUSINESS`.
+ *
+ * Montant LTC : calculé EN DIRECT depuis le prix EUR de référence et le cours
+ * LTC/EUR courant (lib/services/ltc-rate). Repli sur la valeur fixe
+ * `LTC_PRICE_PRO`/`LTC_PRICE_BUSINESS` si l'API du cours est indisponible.
  */
-export function getCryptoAccessConfig(plan: PaidPlan): CryptoAccessConfig {
+export async function getCryptoAccessConfig(plan: PaidPlan): Promise<CryptoAccessConfig> {
   const address = (process.env[`LTC_ADDRESS_${plan}`] || process.env.LTC_ADDRESS || "").trim();
-  const amount = (process.env[`LTC_PRICE_${plan}`] || "").trim();
+  const amount = await ltcAmountForEur(PLANS[plan].price, process.env[`LTC_PRICE_${plan}`]);
   return {
     plan,
     address,

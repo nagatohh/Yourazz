@@ -5,6 +5,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
 import { createPaymentEvidence, calculateRiskScore } from "@/lib/services/chargeback-defender";
 import { checkPlanCap, toEurApprox } from "@/lib/services/plans";
+import { hasFeature } from "@/lib/services/permissions";
 import { createNotification } from "@/lib/services/notifications";
 
 const consentSchema = z.object({
@@ -50,6 +51,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ transactionId: existing.id, duplicate: true, clientSecret: null });
     }
     if (!receiver?.wallet) return NextResponse.json({ error: "Bénéficiaire introuvable" }, { status: 404 });
+
+    // Gating serveur du multi-devises : encaisser en USD/GBP est réservé aux
+    // plans Pro/Business (feature `multiCurrency`). Le frontend ne décide pas.
+    const receiverIsAdmin = receiver.role === "ADMIN" || receiver.role === "ADMIN_OWNER";
+    if (v.currency !== "eur" && !hasFeature(receiver.plan, "multiCurrency", { isAdmin: receiverIsAdmin })) {
+      return NextResponse.json(
+        { error: "Le multi-devises (USD, GBP) est réservé aux plans Pro et Business." },
+        { status: 403 },
+      );
+    }
 
     // Équivalent EUR (taux indicatif) pour les contrôles de limites — le
     // crédit wallet réel utilisera le taux Stripe au règlement (webhook).

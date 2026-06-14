@@ -7,3 +7,6 @@ next-env.d.ts
 .vercel
 
 .vercel
+
+# Vercel CLI local token
+.env.vercel

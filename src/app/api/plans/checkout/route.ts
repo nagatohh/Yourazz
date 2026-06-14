@@ -20,7 +20,8 @@ export async function POST(req: Request) {
     return NextResponse.json(result);
   } catch (e: any) {
     if (e?.name === "ZodError") return NextResponse.json({ error: "Données invalides" }, { status: 400 });
-    console.error("PLAN_CHECKOUT:", e?.message || e);
-    return NextResponse.json({ error: "Impossible de créer la session de paiement" }, { status: 500 });
+    const msg = e?.message || String(e);
+    console.error("PLAN_CHECKOUT:", msg, e?.stack);
+    return NextResponse.json({ error: "Impossible de créer la session de paiement", detail: msg }, { status: 500 });
   }
 }

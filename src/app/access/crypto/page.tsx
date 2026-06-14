@@ -13,7 +13,8 @@ export const metadata = {
 
 // Page de paiement d'un abonnement (Pro/Business) en Litecoin. Le plan vient
 // du paramètre ?plan ; le QR est généré côté serveur (data URI autorisé par
-// la CSP), l'adresse et le montant proviennent de la config d'environnement.
+// la CSP). L'adresse vient de l'env ; le montant LTC est calculé en direct au
+// cours du moment (lib/services/ltc-rate), repli sur LTC_PRICE_* si l'API HS.
 export default async function CryptoAccessPage({
   searchParams,
 }: {
@@ -33,7 +34,7 @@ export default async function CryptoAccessPage({
   const isAdmin = user?.role === "ADMIN" || user?.role === "ADMIN_OWNER";
   const currentPlan = user?.plan ?? "STARTER";
 
-  const cfg = getCryptoAccessConfig(plan);
+  const cfg = await getCryptoAccessConfig(plan);
   const qr = await generatePaymentQr(cfg);
 
   return (

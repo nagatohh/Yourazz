@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getAdminSession } from "@/lib/auth/admin";
 import { reviewCryptoPaymentSchema } from "@/lib/validators";
 import { createActivationKey } from "@/lib/services/crypto-access";
+import { verifyLitecoinPayment } from "@/lib/services/ltc-verify";
 import { createNotification } from "@/lib/services/notifications";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     const { id } = await params;
     const body = await req.json();
-    const { action, note } = reviewCryptoPaymentSchema.parse(body);
+    const { action, note, override } = reviewCryptoPaymentSchema.parse(body);
 
     const payment = await db.cryptoPayment.findUnique({
       where: { id },
@@ -66,6 +67,32 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     const planForKey = payment.plan === "BUSINESS" ? "BUSINESS" : "PRO";
+
+    // Vérification on-chain stricte AVANT d'émettre la clé : la transaction
+    // doit exister, payer la bonne adresse, pour le montant du plan, et être
+    // confirmée. Un échec bloque la confirmation sauf override admin explicite.
+    const expectedLtc = (process.env[`LTC_PRICE_${planForKey}`] || "").trim() || null;
+    const verification = await verifyLitecoinPayment({
+      txid: payment.txid,
+      address: payment.address,
+      expectedLtc,
+    });
+
+    if (!verification.ok && !override) {
+      await db.securityLog.create({
+        data: {
+          userId: admin.userId,
+          action: "CRYPTO_VERIFICATION_FAILED",
+          severity: verification.soft ? "WARNING" : "CRITICAL",
+          metadata: { paymentId: id, reason: verification.reason, paidLtc: verification.paidLtc, expectedLtc: verification.expectedLtc, txid: payment.txid },
+        },
+      });
+      return NextResponse.json(
+        { error: verification.message, verification, requiresOverride: true },
+        { status: 422 },
+      );
+    }
+
     const key = await createActivationKey({
       plan: planForKey,
       createdBy: admin.userId,
@@ -87,9 +114,27 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         userId: admin.userId,
         action: "CRYPTO_PAYMENT_CONFIRMED",
         target: id,
-        metadata: { keyId: key.id, txid: payment.txid },
+        metadata: {
+          keyId: key.id,
+          txid: payment.txid,
+          verification: verification.reason,
+          paidLtc: verification.paidLtc,
+          overridden: !verification.ok && override === true,
+        },
       },
     });
+
+    // Override d'un échec de vérification → trace de sécurité dédiée.
+    if (!verification.ok && override) {
+      await db.securityLog.create({
+        data: {
+          userId: admin.userId,
+          action: "CRYPTO_VERIFICATION_OVERRIDDEN",
+          severity: "WARNING",
+          metadata: { paymentId: id, reason: verification.reason, txid: payment.txid },
+        },
+      });
+    }
 
     await createNotification({
       userId: payment.userId,
@@ -99,7 +144,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       href: "/access/activate",
     });
 
-    return NextResponse.json({ payment: updated, key: key.key, plan: planForKey });
+    return NextResponse.json({ payment: updated, key: key.key, plan: planForKey, verification });
   } catch (e: unknown) {
     if ((e as { name?: string })?.name === "ZodError") {
       return NextResponse.json({ error: "Données invalides" }, { status: 400 });

@@ -136,10 +136,13 @@ export async function setUserPlan(userId: string, plan: PlanTier, source: string
 // ─── Checkout / upgrade ──────────────────────────────────────────────────────
 
 async function getPlanPriceId(plan: "PRO" | "BUSINESS"): Promise<string> {
+  const envKey = process.env[`STRIPE_PRICE_ID_${plan}`];
+  if (envKey) return envKey;
+
   const lookupKey = PLANS[plan].lookupKey!;
   const prices = await getStripe().prices.list({ lookup_keys: [lookupKey], active: true, limit: 1 });
   const price = prices.data[0];
-  if (!price) throw new Error(`Aucun price Stripe actif avec lookup_key "${lookupKey}"`);
+  if (!price) throw new Error(`Aucun price Stripe actif avec lookup_key "${lookupKey}". Configurez STRIPE_PRICE_ID_${plan} dans .env ou créez un price avec ce lookup_key dans Stripe.`);
   return price.id;
 }
 
@@ -158,15 +161,21 @@ export async function createPlanCheckout(
   ]);
 
   if (sub?.stripeSubscriptionId && (sub.status === "active" || sub.status === "trialing" || sub.status === "past_due")) {
-    const current = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId);
-    const item = current.items.data[0];
-    if (item?.price.id === priceId) return { updated: true };
-    await stripe.subscriptions.update(sub.stripeSubscriptionId, {
-      items: [{ id: item.id, price: priceId }],
-      proration_behavior: "create_prorations",
-      metadata: { purpose: "yourazz_access", userId },
-    });
-    return { updated: true };
+    try {
+      const current = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId);
+      if (current.status === "active" || current.status === "trialing" || current.status === "past_due") {
+        const item = current.items.data[0];
+        if (item?.price.id === priceId) return { updated: true };
+        await stripe.subscriptions.update(sub.stripeSubscriptionId, {
+          items: [{ id: item.id, price: priceId }],
+          proration_behavior: "create_prorations",
+          metadata: { purpose: "yourazz_access", userId },
+        });
+        return { updated: true };
+      }
+    } catch {
+      // Subscription invalide/supprimée dans Stripe — on passe au checkout normal
+    }
   }
 
   const { getOrCreateStripeCustomer } = await import("@/lib/services/access");

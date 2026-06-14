@@ -6,7 +6,9 @@ import { apiFetch } from "@/lib/fetch";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Gem, TrendingUp, ExternalLink, AlertCircle, CreditCard, Bitcoin, KeyRound } from "lucide-react";
+import { Check, Gem, TrendingUp, ExternalLink, AlertCircle, CreditCard, Bitcoin, KeyRound, Lock } from "lucide-react";
+import { FEATURE_LABEL, minPlanForFeature, type Feature } from "@/lib/services/permissions";
+import { PlanBadge } from "@/components/dashboard/premium-gate";
 
 type Tier = "STARTER" | "PRO" | "BUSINESS";
 
@@ -28,6 +30,7 @@ interface PlanInfo {
   monthlyUsed: number;
   monthlyCap: number | null;
   subscription: { status: string; currentPeriodEnd: string | null; canceledAt: string | null } | null;
+  permissions: Record<string, boolean>;
   plans: PlanRow[];
 }
 
@@ -66,7 +69,7 @@ export default function PlanPage() {
         body: JSON.stringify({ plan: tier }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || "Erreur"); return; }
+      if (!res.ok) { setError(data.detail ? `${data.error} (${data.detail})` : data.error || "Erreur"); return; }
       if (data.url) { window.location.href = data.url; return; }
       window.location.href = "/dashboard/plan?upgraded=1";
     } catch {
@@ -101,6 +104,9 @@ export default function PlanPage() {
 
   const usagePct = info.monthlyCap ? Math.min(100, Math.round((info.monthlyUsed / info.monthlyCap) * 100)) : null;
   const currentName = info.plans.find((p) => p.tier === info.plan)?.name;
+  const lockedFeatures = (Object.keys(info.permissions) as Feature[]).filter(
+    (f) => !info.permissions[f] && minPlanForFeature(f) !== "STARTER"
+  );
 
   return (
     <div className="space-y-6">
@@ -157,6 +163,36 @@ export default function PlanPage() {
           </>
         )}
       </Card>
+
+      {/* Fonctionnalités verrouillées avec le plan actuel */}
+      {!info.isAdmin && lockedFeatures.length > 0 && (
+        <Card className="p-5 sm:p-6">
+          <div className="mb-3 flex items-center gap-3">
+            <div className="rounded-xl bg-white/[0.04] p-2.5">
+              <Lock className="h-5 w-5 text-zinc-400" />
+            </div>
+            <div>
+              <CardTitle className="text-base">Fonctionnalités verrouillées</CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                {info.plan === "STARTER"
+                  ? "Vous utilisez le plan Starter gratuit. Passez à Pro ou Business pour les débloquer."
+                  : "Passez au plan supérieur pour débloquer ces fonctionnalités."}
+              </CardDescription>
+            </div>
+          </div>
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {lockedFeatures.map((f) => (
+              <li key={f} className="flex items-center justify-between gap-2 rounded-lg border border-white/[0.05] bg-white/[0.02] px-3 py-2">
+                <span className="flex items-center gap-2 text-[13px] text-zinc-400">
+                  <Lock className="h-3.5 w-3.5 flex-shrink-0 text-zinc-600" />
+                  {FEATURE_LABEL[f]}
+                </span>
+                <PlanBadge tier={minPlanForFeature(f) as "PRO" | "BUSINESS"} />
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       {error && (
         <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/[0.06] px-4 py-3">

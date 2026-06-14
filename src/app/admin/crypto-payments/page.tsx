@@ -60,17 +60,30 @@ export default function AdminCryptoPaymentsPage() {
     load();
   }, []);
 
-  const review = async (id: string, action: "confirm" | "reject") => {
-    if (action === "reject" && !confirm("Refuser ce paiement ?")) return;
+  const review = async (id: string, action: "confirm" | "reject", override = false) => {
+    if (action === "reject" && !override && !confirm("Refuser ce paiement ?")) return;
     setBusy(id);
     setIssuedKey(null);
     try {
       const res = await fetch(`/api/admin/crypto-payments/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, override }),
       });
       const data = await res.json();
+
+      // Échec de vérification on-chain : proposer un override explicite.
+      if (res.status === 422 && data.requiresOverride) {
+        const ok = confirm(
+          `⚠️ Vérification blockchain échouée :\n${data.error}\n\nConfirmer QUAND MÊME et émettre la clé ? (action tracée)`,
+        );
+        if (ok) {
+          setBusy(null);
+          return review(id, "confirm", true);
+        }
+        return;
+      }
+
       if (!res.ok) {
         alert(data.error || "Échec de l'opération");
         return;

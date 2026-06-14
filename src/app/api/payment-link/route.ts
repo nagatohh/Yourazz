@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { requireFeatureApi } from "@/lib/services/plan-guard";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +39,16 @@ export async function PATCH(req: Request) {
     const v = updateSchema.parse(await req.json());
     if (Object.keys(v).length === 0) {
       return NextResponse.json({ error: "Aucune modification" }, { status: 400 });
+    }
+
+    // Gating serveur du logo/couleur personnalisés : feature `customLogo`
+    // (Pro/Business). Réponse standardisée PLAN_REQUIRED. Empêche un compte
+    // Starter de les définir via l'API, même en contournant le frontend.
+    const wantsBranding =
+      (v.logoUrl !== undefined && v.logoUrl !== null) || (v.brandColor !== undefined && v.brandColor !== null);
+    if (wantsBranding) {
+      const guard = await requireFeatureApi("customLogo");
+      if (!guard.ok) return guard.response;
     }
 
     const existing = await db.paymentLink.findFirst({ where: { userId: s.userId }, select: { id: true } });

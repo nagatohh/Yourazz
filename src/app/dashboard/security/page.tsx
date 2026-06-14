@@ -99,12 +99,25 @@ export default function SecurityPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const require2fa =
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("require2fa") === "1";
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">Sécurité</h1>
         <p className="text-sm text-zinc-400">Protégez votre compte</p>
       </div>
+
+      {require2fa && !totpEnabled && (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-4 py-3">
+          <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
+          <p className="text-sm text-amber-300">
+            Le panneau d&apos;administration exige la double authentification. Activez le 2FA
+            ci-dessous pour y accéder.
+          </p>
+        </div>
+      )}
 
       {/* 2FA */}
       <Card className="p-5 sm:p-6">

@@ -63,6 +63,40 @@ export function getPlanPermissions(plan: PlanTier, opts?: { isAdmin?: boolean })
   }, {} as PlanPermissions);
 }
 
+// ─── Hiérarchie des plans & métadonnées de fonctionnalités ───────────────────
+
+/** Ordre des plans : STARTER < PRO < BUSINESS. Sert aux comparaisons « plan minimum ». */
+export const PLAN_RANK: Record<PlanTier, number> = { STARTER: 0, PRO: 1, BUSINESS: 2 };
+
+const PLAN_ORDER: PlanTier[] = ["STARTER", "PRO", "BUSINESS"];
+
+/** Vrai si `plan` est au moins équivalent à `required` (STARTER < PRO < BUSINESS). */
+export function meetsPlan(plan: PlanTier, required: PlanTier): boolean {
+  return PLAN_RANK[plan] >= PLAN_RANK[required];
+}
+
+/** Plan minimum requis pour débloquer une fonctionnalité (le plus bas qui l'inclut). */
+export function minPlanForFeature(feature: Feature): PlanTier {
+  for (const tier of PLAN_ORDER) {
+    if (PLAN_FEATURES[tier].includes(feature)) return tier;
+  }
+  return "BUSINESS";
+}
+
+/** Libellés FR des fonctionnalités — messages d'erreur et UI verrouillée. */
+export const FEATURE_LABEL: Record<Feature, string> = {
+  paymentLink: "Lien de paiement",
+  basicDashboard: "Tableau de bord",
+  standardSupport: "Support standard",
+  prioritySupport: "Support prioritaire",
+  multiCurrency: "Multi-devises (EUR, USD, GBP)",
+  customLogo: "Logo & couleur personnalisés",
+  advancedStats: "Statistiques avancées",
+  apiAccess: "Accès API",
+  dedicatedSupport: "Accompagnement dédié",
+  unlimitedVolume: "Encaissement illimité",
+};
+
 // ─── Métadonnées d'affichage (couleurs, badges, avantages listés) ────────────
 
 export interface PlanMeta {

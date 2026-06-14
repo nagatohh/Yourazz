@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 import { activateKeySchema } from "@/lib/validators";
 import { redeemActivationKey } from "@/lib/services/crypto-access";
+import { checkActivationAbuse } from "@/lib/services/security-monitor";
 import { createNotification } from "@/lib/services/notifications";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +47,8 @@ export async function POST(req: Request) {
           metadata: { code: result.code },
         },
       });
+      // Détection de brute-force → alerte admin si trop d'échecs récents.
+      await checkActivationAbuse(session.userId, ip);
       return NextResponse.json({ error: result.message, code: result.code }, { status: 400 });
     }
 

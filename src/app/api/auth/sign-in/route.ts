@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { verifyPassword, createSession, createPending2fa } from "@/lib/auth";
 import { signInSchema } from "@/lib/validators";
 import { rateLimit, rateLimitByAccount, recordFailedAttempt, clearFailedAttempts } from "@/lib/rate-limit";
+import { alertAccountLocked } from "@/lib/services/security-monitor";
 
 export async function POST(req: Request) {
   try {
@@ -21,6 +22,10 @@ export async function POST(req: Request) {
       await db.securityLog.create({
         data: { action: "LOGIN_FAILED", ipAddress: ip, metadata: { email } },
       });
+      // Si cet échec vient de franchir le seuil de verrouillage → alerte admin (une fois).
+      if (rateLimitByAccount(email, 5, 15 * 60 * 1000).locked) {
+        await alertAccountLocked(email, typeof ip === "string" ? ip : "unknown");
+      }
       return NextResponse.json({ error: "Identifiants incorrects" }, { status: 401 });
     }
 

@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     const txid = normalizeTxid(parsed.txid);
     const amount = parsed.amount ? parsed.amount : null;
 
-    const cfg = getCryptoAccessConfig(parsed.plan);
+    const cfg = await getCryptoAccessConfig(parsed.plan);
     if (!cfg.configured) {
       return NextResponse.json({ error: "Le paiement crypto n'est pas encore configuré." }, { status: 503 });
     }

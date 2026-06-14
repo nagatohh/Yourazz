@@ -26,6 +26,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import RevenueChart from "@/components/dashboard/revenue-chart";
 import MethodBreakdown from "@/components/dashboard/method-breakdown";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
+import { AdvancedStats } from "@/components/dashboard/advanced-stats";
 
 interface Stats {
   availableBalance: number;
@@ -426,6 +427,9 @@ export default function DashboardPage() {
         </CardTitle>
         <MethodBreakdown data={stats.methodBreakdown} />
       </Card>
+
+      {/* Statistiques avancées — verrouillées hors Business */}
+      <AdvancedStats />
     </div>
   );
 }
