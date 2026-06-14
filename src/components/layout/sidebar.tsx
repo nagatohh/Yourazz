@@ -26,6 +26,7 @@ import {
   Gem,
   Bitcoin,
   KeyRound,
+  Code,
 } from "lucide-react";
 
 const navItems = [
@@ -35,12 +36,14 @@ const navItems = [
   { href: "/dashboard/payment-link", label: "Lien de paiement", icon: LinkIcon },
   { href: "/dashboard/bank-account", label: "Compte bancaire", icon: Building2 },
   { href: "/dashboard/plan", label: "Mon plan", icon: Gem },
+  { href: "/dashboard/api", label: "API", icon: Code },
   { href: "/dashboard/settings", label: "Paramètres", icon: Settings },
   { href: "/dashboard/security", label: "Sécurité", icon: Shield },
 ];
 
 const adminItems = [
-  { href: "/admin", label: "Vue d'ensemble", icon: Users },
+  { href: "/admin", label: "Vue d'ensemble", icon: LayoutDashboard },
+  { href: "/admin/users", label: "Utilisateurs", icon: Users },
   { href: "/admin/payments", label: "Paiements", icon: CreditCard },
   { href: "/admin/crypto-payments", label: "Paiements crypto", icon: Bitcoin },
   { href: "/admin/activation-keys", label: "Clés d'activation", icon: KeyRound },

@@ -124,13 +124,19 @@ export async function resolvePlanFromPriceId(priceId: string | null | undefined)
 }
 
 export async function setUserPlan(userId: string, plan: PlanTier, source: string) {
-  const user = await db.user.findUnique({ where: { id: userId }, select: { plan: true } });
+  const user = await db.user.findUnique({ where: { id: userId }, select: { plan: true, email: true } });
   if (!user || user.plan === plan) return;
 
   await db.user.update({ where: { id: userId }, data: { plan } });
   await db.auditLog.create({
     data: { userId, action: "PLAN_CHANGED", metadata: { from: user.plan, to: plan, source } },
   });
+
+  if (user.email) {
+    import("@/lib/email/plan-notifications").then(({ sendPlanUpgradedEmail }) =>
+      sendPlanUpgradedEmail(user.email, plan === "BUSINESS" ? "Business" : "Pro").catch(() => {})
+    );
+  }
 }
 
 // ─── Checkout / upgrade ──────────────────────────────────────────────────────

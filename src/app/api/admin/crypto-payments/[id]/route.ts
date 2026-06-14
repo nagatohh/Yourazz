@@ -5,6 +5,7 @@ import { reviewCryptoPaymentSchema } from "@/lib/validators";
 import { createActivationKey } from "@/lib/services/crypto-access";
 import { verifyLitecoinPayment } from "@/lib/services/ltc-verify";
 import { createNotification } from "@/lib/services/notifications";
+import { sendCryptoPaymentConfirmedEmail } from "@/lib/email/plan-notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -143,6 +144,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       body: `Votre paiement est confirmé. Saisissez votre clé d'activation pour passer en plan ${planForKey === "BUSINESS" ? "Business" : "Pro"}.`,
       href: "/access/activate",
     });
+
+    const user = await db.user.findUnique({ where: { id: payment.userId }, select: { email: true } });
+    if (user?.email) {
+      sendCryptoPaymentConfirmedEmail(user.email, { plan: planForKey, key: key.key, reference: payment.reference || undefined }).catch(() => {});
+    }
 
     return NextResponse.json({ payment: updated, key: key.key, plan: planForKey, verification });
   } catch (e: unknown) {
