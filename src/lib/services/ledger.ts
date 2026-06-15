@@ -101,26 +101,44 @@ export async function confirmPayin(params: ConfirmPayinParams) {
     // Already succeeded — idempotent, skip
     if (transaction.status === "SUCCEEDED") return transaction;
 
-    // Can only confirm PENDING or AUTHORIZED transactions
-    if (transaction.status !== "PENDING" && transaction.status !== "AUTHORIZED") return null;
+    // Récupération FAILED → SUCCEEDED : un PaymentIntent peut échouer (1ère
+    // tentative refusée → payment_intent.payment_failed) PUIS réussir au retry
+    // sur le MÊME PI (payment_intent.succeeded ~secondes après). Sans ce cas,
+    // le succès était ignoré et le marchand jamais crédité. Stripe ne fait
+    // jamais succeeded sans encaissement réel, donc on accepte cette transition.
+    const isRecovery = transaction.status === "FAILED";
+
+    // Sinon, on ne confirme que PENDING ou AUTHORIZED.
+    if (transaction.status !== "PENDING" && transaction.status !== "AUTHORIZED" && !isRecovery) {
+      return null;
+    }
 
     const updated = await tx.transaction.update({
       where: { id: transaction.id },
-      data: { status: "SUCCEEDED" },
+      data: { status: "SUCCEEDED", failureReason: null },
     });
 
-    // Credit available balance with net amount (after fees)
-    // Also decrement pendingBalance if it was previously incremented (legacy intents)
-    const wallet = await tx.wallet.findUnique({ where: { id: transaction.walletId } });
-    const hasPending = wallet && wallet.pendingBalance >= transaction.amount;
+    if (isRecovery) {
+      // failPayin a déjà soldé l'éventuel pending lors de l'échec : on crédite
+      // simplement l'available, sans retoucher au pending.
+      await tx.wallet.update({
+        where: { id: transaction.walletId },
+        data: { availableBalance: { increment: transaction.netAmount } },
+      });
+    } else {
+      // Credit available balance with net amount (after fees).
+      // Decrement pendingBalance only if it was previously incremented (legacy intents).
+      const wallet = await tx.wallet.findUnique({ where: { id: transaction.walletId } });
+      const hasPending = wallet && wallet.pendingBalance >= transaction.amount;
 
-    await tx.wallet.update({
-      where: { id: transaction.walletId },
-      data: {
-        ...(hasPending ? { pendingBalance: { decrement: transaction.amount } } : {}),
-        availableBalance: { increment: transaction.netAmount },
-      },
-    });
+      await tx.wallet.update({
+        where: { id: transaction.walletId },
+        data: {
+          ...(hasPending ? { pendingBalance: { decrement: transaction.amount } } : {}),
+          availableBalance: { increment: transaction.netAmount },
+        },
+      });
+    }
 
     await tx.auditLog.create({
       data: {
