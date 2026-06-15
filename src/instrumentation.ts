@@ -16,10 +16,11 @@ export async function register() {
     const { success, errors } = validateEnv();
 
     if (!success) {
-      const detail = errors.map((e) => `  - ${e}`).join("\n");
-      console.error(
-        `[env] ⚠️ Variables d'environnement invalides ou manquantes (non bloquant) :\n${detail}`,
-      );
+      // Noms uniquement (jamais les valeurs) + ligne compacte pour éviter la
+      // troncature des logs Vercel. Non bloquant.
+      const names = errors.map((e) => e.split(":")[0].trim()).join(", ");
+      console.error(`[env] non-conforme: ${names}`);
+      for (const e of errors) console.error(`[env] detail ${e}`);
     } else {
       console.log("[env] Variables d'environnement validées.");
     }
