@@ -47,6 +47,48 @@ function GlowButton({ children, variant = "primary", onClick, size = "md" }: { c
   );
 }
 
+// ─── Floating bob (idle animation for icons) ──────────────────────────────────
+function FloatBob({ children, delay = 0, duration = 3, distance = 6, className = "" }: { children: React.ReactNode; delay?: number; duration?: number; distance?: number; className?: string }) {
+  return (
+    <motion.div
+      className={className}
+      animate={{ y: [0, -distance, 0] }}
+      transition={{ duration, repeat: Infinity, ease: "easeInOut", delay }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ─── Ambient background (persists across slides) ──────────────────────────────
+function AmbientBackground() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <motion.div
+        className="absolute w-[500px] h-[500px] bg-[#ff2d2d]/[0.06] rounded-full blur-[140px]"
+        style={{ top: "5%", left: "0%" }}
+        animate={{ x: [0, 80, 0], y: [0, 60, 0], scale: [1, 1.15, 1] }}
+        transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute w-[450px] h-[450px] bg-[#ff2d2d]/[0.05] rounded-full blur-[140px]"
+        style={{ bottom: "0%", right: "5%" }}
+        animate={{ x: [0, -60, 0], y: [0, -40, 0], scale: [1, 1.2, 1] }}
+        transition={{ duration: 26, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+      />
+      {[...Array(18)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute w-1 h-1 rounded-full bg-[#ff2d2d]/20"
+          style={{ left: `${(i * 13) % 100}%`, top: `${(i * 23) % 100}%` }}
+          animate={{ y: [0, -30, 0], opacity: [0.1, 0.6, 0.1] }}
+          transition={{ duration: 4 + (i % 4), repeat: Infinity, delay: i * 0.3, ease: "easeInOut" }}
+        />
+      ))}
+    </div>
+  );
+}
+
 // ─── Slide transition variants ────────────────────────────────────────────────
 const slideVariants = {
   enter: (dir: number) => ({ x: dir > 0 ? "100%" : "-100%", opacity: 0 }),
@@ -96,19 +138,6 @@ function HeroSlide({ active }: { active: boolean }) {
       >
         <GlowButton>Découvrir la plateforme</GlowButton>
       </motion.div>
-
-      {/* Particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(15)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 rounded-full bg-[#ff2d2d]/30"
-            style={{ left: `${10 + (i * 6)}%`, top: `${20 + (i * 5) % 60}%` }}
-            animate={{ y: [0, -20, 0], opacity: [0.2, 0.8, 0.2] }}
-            transition={{ duration: 3 + (i % 3), repeat: Infinity, delay: i * 0.2 }}
-          />
-        ))}
-      </div>
     </div>
   );
 }
@@ -149,7 +178,9 @@ function ProblemSlide({ active }: { active: boolean }) {
               className="relative p-7 rounded-3xl bg-white/[0.02] border border-white/[0.06] backdrop-blur-sm group hover:border-[#ff2d2d]/20 transition-all duration-500"
             >
               <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#ff2d2d]/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <span className="text-3xl mb-3 block">{p.icon}</span>
+              <FloatBob delay={i * 0.3} duration={3 + i * 0.4} className="mb-3">
+                <span className="text-3xl block">{p.icon}</span>
+              </FloatBob>
               <h3 className="text-lg font-bold text-white mb-1">{p.title}</h3>
               <p className="text-zinc-400 text-sm leading-relaxed">{p.desc}</p>
             </motion.div>
@@ -191,6 +222,16 @@ function SolutionSlide({ active }: { active: boolean }) {
 
         {/* Hub */}
         <div className="relative flex items-center justify-center min-h-[350px]">
+          {/* Radar pulse rings */}
+          {[0, 1, 2].map((ring) => (
+            <motion.div
+              key={ring}
+              className="absolute z-0 w-20 h-20 rounded-full border border-[#ff2d2d]/30"
+              animate={active ? { scale: [1, 2.6], opacity: [0.5, 0] } : { scale: 1, opacity: 0 }}
+              transition={{ duration: 3, repeat: Infinity, delay: ring, ease: "easeOut" }}
+            />
+          ))}
+
           <motion.div
             initial={{ scale: 0 }}
             animate={active ? { scale: 1 } : {}}
@@ -208,18 +249,19 @@ function SolutionSlide({ active }: { active: boolean }) {
             return (
               <motion.div
                 key={i}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={active ? { scale: 1, opacity: 1 } : {}}
+                initial={{ scale: 0, opacity: 0, x, y }}
+                animate={active ? { scale: 1, opacity: 1, x, y } : { x, y }}
                 transition={{ duration: 0.5, delay: 0.4 + i * 0.1 }}
-                className="absolute"
-                style={{ transform: `translate(${x}px, ${y}px)` }}
+                className="absolute z-10 left-1/2 top-1/2 w-[130px] -ml-[65px] -mt-[40px]"
               >
                 <motion.div
                   whileHover={{ scale: 1.15 }}
-                  className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm hover:border-[#ff2d2d]/30 transition-all cursor-pointer"
+                  className="rounded-2xl"
                 >
-                  <span className="text-2xl">{f.icon}</span>
-                  <span className="text-[10px] text-zinc-300 font-medium whitespace-nowrap">{f.title}</span>
+                  <FloatBob delay={i * 0.25} duration={3 + i * 0.3} distance={5} className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm hover:border-[#ff2d2d]/30 transition-all cursor-pointer">
+                    <span className="text-2xl">{f.icon}</span>
+                    <span className="text-[10px] text-zinc-300 font-medium whitespace-nowrap">{f.title}</span>
+                  </FloatBob>
                 </motion.div>
               </motion.div>
             );
@@ -295,7 +337,9 @@ function PaymentsSlide({ active }: { active: boolean }) {
                 whileHover={{ y: -8, scale: 1.02 }}
                 className="p-8 rounded-3xl bg-white/[0.02] border border-white/[0.06] text-center group hover:border-[#ff2d2d]/20 transition-all duration-500"
               >
-                <span className="text-5xl mb-4 block">{item.icon}</span>
+                <FloatBob delay={i * 0.3} duration={3 + i * 0.4} className="mb-4">
+                  <span className="text-5xl block">{item.icon}</span>
+                </FloatBob>
                 <h3 className="text-lg font-bold text-white mb-1">{item.title}</h3>
                 <p className="text-zinc-500 text-sm">{item.desc}</p>
               </motion.div>
@@ -396,7 +440,13 @@ function ActivationSlide({ active }: { active: boolean }) {
         </motion.div>
 
         <div className="relative">
-          <div className="absolute left-8 top-0 bottom-0 w-px bg-gradient-to-b from-[#ff2d2d]/50 via-[#ff2d2d]/20 to-transparent hidden sm:block" />
+          <motion.div
+            initial={{ scaleY: 0 }}
+            animate={active ? { scaleY: 1 } : { scaleY: 0 }}
+            transition={{ duration: 1.2, delay: 0.3, ease: "easeOut" }}
+            style={{ originY: 0 }}
+            className="absolute left-8 top-0 bottom-0 w-px bg-gradient-to-b from-[#ff2d2d]/50 via-[#ff2d2d]/20 to-transparent hidden sm:block"
+          />
           <div className="space-y-6">
             {steps.map((step, i) => (
               <motion.div
@@ -459,7 +509,9 @@ function SecuritySlide({ active }: { active: boolean }) {
                 whileHover={{ scale: 1.05 }}
                 className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.06] backdrop-blur-sm hover:border-[#ff2d2d]/20 transition-all duration-500 text-center group"
               >
-                <span className="text-3xl mb-3 block group-hover:scale-110 transition-transform duration-300">{f.icon}</span>
+                <FloatBob delay={i * 0.3} duration={3 + i * 0.4} className="mb-3">
+                  <span className="text-3xl block group-hover:scale-110 transition-transform duration-300">{f.icon}</span>
+                </FloatBob>
                 <h3 className="text-sm font-bold text-white mb-1">{f.title}</h3>
                 <p className="text-zinc-500 text-[11px] leading-relaxed">{f.desc}</p>
               </motion.div>
@@ -499,6 +551,14 @@ function DashboardSlide({ active }: { active: boolean }) {
             <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/50" />
             <div className="w-2.5 h-2.5 rounded-full bg-green-500/50" />
             <span className="ml-3 text-[10px] text-zinc-600">yourazz.xyz/dashboard</span>
+            <span className="ml-auto flex items-center gap-1.5 text-[10px] text-emerald-400 font-medium">
+              <motion.span
+                className="w-1.5 h-1.5 rounded-full bg-emerald-400"
+                animate={{ opacity: [1, 0.3, 1], scale: [1, 1.3, 1] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+              />
+              Live
+            </span>
           </div>
           <div className="p-6">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
@@ -595,7 +655,11 @@ function WhySlide({ active }: { active: boolean }) {
 function VisionSlide({ active }: { active: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center h-full px-6 text-center relative">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#ff2d2d]/[0.05] rounded-full blur-[120px] pointer-events-none" />
+      <motion.div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#ff2d2d]/[0.05] rounded-full blur-[120px] pointer-events-none"
+        animate={{ scale: [1, 1.15, 1], opacity: [1, 0.7, 1] }}
+        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+      />
 
       <div className="max-w-4xl mx-auto relative z-10">
         <motion.span
@@ -656,7 +720,11 @@ function VisionSlide({ active }: { active: boolean }) {
 function CTASlide({ active }: { active: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center h-full px-6 text-center relative">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-[#ff2d2d]/[0.08] rounded-full blur-[150px] pointer-events-none" />
+      <motion.div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-[#ff2d2d]/[0.08] rounded-full blur-[150px] pointer-events-none"
+        animate={{ scale: [1, 1.2, 1], opacity: [1, 0.6, 1] }}
+        transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+      />
 
       <div className="max-w-4xl mx-auto relative z-10">
         <motion.div
@@ -764,7 +832,9 @@ export default function PresentationPage() {
   const SlideComponent = SLIDES[current].component;
 
   return (
-    <main className="bg-[#050505] h-screen w-screen overflow-hidden relative select-none">
+    <main className="bg-[#050505] h-screen w-full overflow-hidden relative select-none">
+      <AmbientBackground />
+
       {/* Slide content */}
       <AnimatePresence initial={false} custom={direction} onExitComplete={() => setIsAnimating(false)}>
         <motion.div

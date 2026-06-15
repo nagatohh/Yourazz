@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { requireActiveAccess } from "@/lib/auth/access";
+import { rateLimit } from "@/lib/rate-limit";
 import {
   createConnectedPayout,
   createPlatformTransfer,
@@ -26,6 +27,18 @@ export async function POST(req: Request) {
   try {
     const access = await requireActiveAccess();
     if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
+
+    // Rate limit sur l'endpoint le plus sensible (mouvement d'argent) : au plus
+    // 5 tentatives de retrait par 5 minutes et par utilisateur. L'idempotency
+    // protège déjà le double-clic ; ceci bloque le martèlement / scripting.
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const { allowed } = await rateLimit(`payout:${access.userId}:${ip}`, 5, 5 * 60_000);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Trop de demandes de retrait. Réessayez dans quelques minutes." },
+        { status: 429 },
+      );
+    }
 
     const v = createPayoutSchema.parse(await req.json());
 

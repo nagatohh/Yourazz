@@ -17,7 +17,7 @@ const METHOD_MAP: Record<string, PaymentMethod> = {
 export async function POST(req: Request) {
   try {
     const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
-    const { allowed } = rateLimit(`payment:${ip}`, 20, 60000);
+    const { allowed } = await rateLimit(`payment:${ip}`, 20, 60000);
     if (!allowed) return NextResponse.json({ error: "Trop de requêtes, réessayez dans 1 minute" }, { status: 429 });
 
     const body = await req.json();

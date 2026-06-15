@@ -74,7 +74,7 @@ export default function SettingsPage() {
               label="Nom d'utilisateur"
               value={username}
               onChange={(e) => setUsername(e.target.value.toLowerCase().trim())}
-              placeholder="ex : kylian"
+              placeholder="ex : monpseudo"
               minLength={3}
               maxLength={30}
             />

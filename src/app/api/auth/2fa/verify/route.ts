@@ -16,7 +16,7 @@ const schema = z.object({ code: z.string().min(6).max(12) });
 export async function POST(req: Request) {
   try {
     const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
-    const { allowed } = rateLimit(`2fa-verify:${ip}`, 10, 60000);
+    const { allowed } = await rateLimit(`2fa-verify:${ip}`, 10, 60000);
     if (!allowed) return NextResponse.json({ error: "Trop de tentatives" }, { status: 429 });
 
     const pending = await getPending2fa();

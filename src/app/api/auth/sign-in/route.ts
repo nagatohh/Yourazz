@@ -8,22 +8,22 @@ import { alertAccountLocked } from "@/lib/services/security-monitor";
 export async function POST(req: Request) {
   try {
     const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
-    const { allowed } = rateLimit(`login:${ip}`, 5, 60000);
+    const { allowed } = await rateLimit(`login:${ip}`, 5, 60000);
     if (!allowed) return NextResponse.json({ error: "Trop de tentatives, réessayez dans 1 minute" }, { status: 429 });
 
     const { email, password } = signInSchema.parse(await req.json());
 
-    const { locked } = rateLimitByAccount(email, 5, 15 * 60 * 1000);
+    const { locked } = await rateLimitByAccount(email, 5, 15 * 60 * 1000);
     if (locked) return NextResponse.json({ error: "Compte temporairement verrouillé. Réessayez dans 15 minutes." }, { status: 423 });
 
     const user = await db.user.findUnique({ where: { email } });
     if (!user || !(await verifyPassword(password, user.passwordHash))) {
-      recordFailedAttempt(email, 15 * 60 * 1000);
+      await recordFailedAttempt(email, 15 * 60 * 1000);
       await db.securityLog.create({
         data: { action: "LOGIN_FAILED", ipAddress: ip, metadata: { email } },
       });
       // Si cet échec vient de franchir le seuil de verrouillage → alerte admin (une fois).
-      if (rateLimitByAccount(email, 5, 15 * 60 * 1000).locked) {
+      if ((await rateLimitByAccount(email, 5, 15 * 60 * 1000)).locked) {
         await alertAccountLocked(email, typeof ip === "string" ? ip : "unknown");
       }
       return NextResponse.json({ error: "Identifiants incorrects" }, { status: 401 });
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     if (user.status !== "ACTIVE")
       return NextResponse.json({ error: "Compte suspendu" }, { status: 403 });
 
-    clearFailedAttempts(email);
+    await clearFailedAttempts(email);
 
     // 2FA actif : pas de session tout de suite — cookie intermédiaire 5 min,
     // la session est créée par /api/auth/2fa/verify après le code TOTP.

@@ -8,7 +8,7 @@ import crypto from "crypto";
 export async function POST(req: Request) {
   try {
     const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
-    const { allowed } = rateLimit(`resend-verify:${ip}`, 3, 300000);
+    const { allowed } = await rateLimit(`resend-verify:${ip}`, 3, 300000);
     if (!allowed) return NextResponse.json({ error: "Trop de tentatives, réessayez dans 5 minutes" }, { status: 429 });
 
     const session = await getSession();

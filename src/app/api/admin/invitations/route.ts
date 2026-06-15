@@ -14,7 +14,7 @@ const createSchema = z.object({
 export async function POST(req: Request) {
   try {
     const ip = req.headers.get("x-forwarded-for") || "unknown";
-    const { allowed } = rateLimit(`admin-invite:${ip}`, 10, 60000);
+    const { allowed } = await rateLimit(`admin-invite:${ip}`, 10, 60000);
     if (!allowed) return NextResponse.json({ error: "Trop de requêtes" }, { status: 429 });
 
     const body = await req.json();

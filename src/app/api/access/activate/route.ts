@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     const userAgent = req.headers.get("user-agent") || null;
 
     // Rate-limit strict : bloque le brute-force de clés.
-    const { allowed } = rateLimit(`activate:${session.userId}:${ip}`, 8, 60_000);
+    const { allowed } = await rateLimit(`activate:${session.userId}:${ip}`, 8, 60_000);
     if (!allowed) {
       return NextResponse.json({ error: "Trop de tentatives. Réessayez dans une minute." }, { status: 429 });
     }

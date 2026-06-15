@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { hasFeature } from "@/lib/services/permissions";
+import { rateLimit } from "@/lib/rate-limit";
 import { randomBytes, createHash } from "crypto";
 import { z } from "zod";
 import type { PlanTier } from "@prisma/client";
@@ -43,6 +44,13 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
+  // Anti-abus : au plus 10 créations de clé par heure et par utilisateur
+  // (la limite de 5 clés actives existe déjà, ceci borne aussi le churn create/revoke).
+  const { allowed } = await rateLimit(`apikey-create:${session.userId}`, 10, 60 * 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Trop de créations de clés. Réessayez plus tard." }, { status: 429 });
+  }
 
   const user = await db.user.findUnique({ where: { id: session.userId }, select: { plan: true, role: true } });
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });

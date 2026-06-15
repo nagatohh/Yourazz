@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
-  const { allowed } = rateLimit(`payment-status:${ip}`, 30, 60000);
+  const { allowed } = await rateLimit(`payment-status:${ip}`, 30, 60000);
   if (!allowed) return NextResponse.json({ error: "Trop de requêtes" }, { status: 429 });
 
   const url = new URL(req.url);

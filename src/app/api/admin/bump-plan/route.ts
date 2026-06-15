@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getAdminSession } from "@/lib/auth/admin";
 import { db } from "@/lib/db";
 import { setUserPlan } from "@/lib/services/plans";
 import { z } from "zod";
@@ -12,12 +12,14 @@ const schema = z.object({
 });
 
 export async function POST(req: Request) {
-  const session = await getSession();
-  if (!session || (session.role !== "ADMIN" && session.role !== "ADMIN_OWNER")) {
+  // Sécurité : rôle relu en DB (getAdminSession), jamais depuis le JWT — un
+  // admin révoqué porte encore un JWT valide jusqu'à 7 jours.
+  const admin = await getAdminSession();
+  if (!admin) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
 
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Données invalides", details: parsed.error.flatten() }, { status: 400 });
@@ -29,7 +31,17 @@ export async function POST(req: Request) {
   });
   if (!target) return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
 
-  await setUserPlan(target.id, parsed.data.plan, `admin_bump:${session.userId}`);
+  await setUserPlan(target.id, parsed.data.plan, `admin_bump:${admin.userId}`);
+
+  // Trace l'action admin (qui a changé quel plan, pour quel user).
+  await db.auditLog.create({
+    data: {
+      userId: admin.userId,
+      action: "ADMIN_PLAN_BUMP",
+      target: target.id,
+      metadata: { from: target.plan, to: parsed.data.plan, targetEmail: target.email },
+    },
+  });
 
   return NextResponse.json({
     ok: true,

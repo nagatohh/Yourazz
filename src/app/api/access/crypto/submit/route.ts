@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     const userAgent = req.headers.get("user-agent") || null;
 
-    const { allowed } = rateLimit(`crypto-submit:${session.userId}:${ip}`, 5, 60_000);
+    const { allowed } = await rateLimit(`crypto-submit:${session.userId}:${ip}`, 5, 60_000);
     if (!allowed) return NextResponse.json({ error: "Trop de tentatives, réessayez dans une minute." }, { status: 429 });
 
     const body = await req.json();

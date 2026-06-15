@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   try {
     const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
-    const { allowed } = rateLimit(`abandon:${ip}`, 20, 60000);
+    const { allowed } = await rateLimit(`abandon:${ip}`, 20, 60000);
     if (!allowed) return NextResponse.json({ error: "Trop de requêtes" }, { status: 429 });
 
     // sendBeacon envoie le corps en text/plain — on parse manuellement

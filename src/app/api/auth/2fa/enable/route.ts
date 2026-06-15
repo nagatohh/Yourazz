@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     const s = await getSession();
     if (!s) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
-    const { allowed } = rateLimit(`2fa-enable:${s.userId}`, 5, 60000);
+    const { allowed } = await rateLimit(`2fa-enable:${s.userId}`, 5, 60000);
     if (!allowed) return NextResponse.json({ error: "Trop de tentatives" }, { status: 429 });
 
     const { code } = schema.parse(await req.json());

@@ -8,7 +8,7 @@ export async function POST() {
     const s = await getSession();
     if (!s) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
-    const { allowed } = rateLimit(`plan-portal:${s.userId}`, 5, 60000);
+    const { allowed } = await rateLimit(`plan-portal:${s.userId}`, 5, 60000);
     if (!allowed) return NextResponse.json({ error: "Trop de requêtes" }, { status: 429 });
 
     const { url } = await createBillingPortal(s.userId);

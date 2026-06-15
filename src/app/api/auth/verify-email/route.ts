@@ -6,7 +6,7 @@ import crypto from "crypto";
 export async function POST(req: Request) {
   try {
     const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
-    const { allowed } = rateLimit(`verify-email:${ip}`, 10, 60000);
+    const { allowed } = await rateLimit(`verify-email:${ip}`, 10, 60000);
     if (!allowed) return NextResponse.json({ error: "Trop de tentatives" }, { status: 429 });
 
     const { token } = await req.json();
