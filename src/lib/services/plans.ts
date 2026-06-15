@@ -39,7 +39,16 @@ export function toEurApprox(amount: number, currency: string): number {
   return Math.round(amount * (APPROX_EUR_RATES[currency.toUpperCase()] ?? 1));
 }
 
-/** Volume encaissé ce mois-ci (PAYIN non échoués), en équivalent EUR cents. */
+/**
+ * Volume réellement encaissé ce mois-ci, en équivalent EUR cents.
+ *
+ * On NE compte PAS les PENDING : un PaymentIntent est créé en PENDING dès
+ * l'ouverture du formulaire, AVANT que le client paie. Les compter laissait un
+ * paiement abandonné — ou un faux montant saisi par n'importe qui — saturer le
+ * plafond et bloquer les vrais encaissements (cas vu en prod : un Starter bloqué
+ * par un faux « virement » de 500 € jamais payé). On retient donc les états où
+ * l'argent est réellement engagé/reçu : AUTHORIZED, PROCESSING, SUCCEEDED.
+ */
 export async function getMonthlyVolumeEur(userId: string): Promise<number> {
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
@@ -50,7 +59,7 @@ export async function getMonthlyVolumeEur(userId: string): Promise<number> {
     where: {
       userId,
       type: "PAYIN",
-      status: { in: ["PENDING", "PROCESSING", "AUTHORIZED", "SUCCEEDED"] },
+      status: { in: ["PROCESSING", "AUTHORIZED", "SUCCEEDED"] },
       createdAt: { gte: startOfMonth },
     },
     _sum: { amount: true },
