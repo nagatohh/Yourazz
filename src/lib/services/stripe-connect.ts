@@ -11,9 +11,25 @@ export async function createConnectedAccount(params: {
   email: string;
   name?: string;
   country?: string;
-  tosAcceptanceIp?: string;
+  tosAcceptanceIp?: string; // conservé pour compat ; l'IP de ToS est captée par Stripe à la création du token
 }): Promise<{ stripeAccountId: string }> {
   const stripe = getStripe();
+
+  // Plateforme FR + comptes Custom (controller[requirement_collection]=application) :
+  // Stripe IMPOSE la création via un account token (identité + ToS dans le token),
+  // pas de tos_acceptance/individual passés en clair.
+  // cf. https://stripe.com/docs/connect/account-tokens
+  const accountToken = await stripe.tokens.create({
+    account: {
+      business_type: "individual",
+      individual: {
+        email: params.email,
+        first_name: params.name?.split(" ")[0] || undefined,
+        last_name: params.name?.split(" ").slice(1).join(" ") || undefined,
+      },
+      tos_shown_and_accepted: true,
+    },
+  });
 
   const account = await stripe.accounts.create({
     type: "custom",
@@ -22,20 +38,11 @@ export async function createConnectedAccount(params: {
     capabilities: {
       transfers: { requested: true },
     },
-    business_type: "individual",
-    individual: {
-      email: params.email,
-      first_name: params.name?.split(" ")[0] || undefined,
-      last_name: params.name?.split(" ").slice(1).join(" ") || undefined,
-    },
     business_profile: {
       mcc: "7299",
       url: process.env.NEXT_PUBLIC_APP_URL || "https://yourazz.xyz",
     },
-    tos_acceptance: {
-      date: Math.floor(Date.now() / 1000),
-      ip: params.tosAcceptanceIp || "0.0.0.0",
-    },
+    account_token: accountToken.id,
     metadata: { userId: params.userId },
   });
 
@@ -51,18 +58,21 @@ export async function addExternalBankAccount(params: {
 }): Promise<{ externalAccountId: string; bankName?: string; last4?: string }> {
   const stripe = getStripe();
 
+  // Même contrainte FR : on tokenise le compte bancaire plutôt que d'envoyer
+  // l'IBAN en clair dans createExternalAccount.
+  const bankToken = await stripe.tokens.create({
+    bank_account: {
+      country: params.country,
+      currency: params.currency.toLowerCase(),
+      account_holder_name: params.holderName,
+      account_holder_type: "individual",
+      account_number: params.iban,
+    },
+  });
+
   const bankAccount = await stripe.accounts.createExternalAccount(
     params.stripeAccountId,
-    {
-      external_account: {
-        object: "bank_account",
-        country: params.country,
-        currency: params.currency.toLowerCase(),
-        account_holder_name: params.holderName,
-        account_holder_type: "individual",
-        account_number: params.iban,
-      } as any,
-    }
+    { external_account: bankToken.id }
   );
 
   const ba = bankAccount as Stripe.BankAccount;
