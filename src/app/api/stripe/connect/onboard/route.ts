@@ -52,13 +52,12 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ url });
   } catch (e: any) {
-    // TEMPORAIRE (diagnostic) : on remonte le message Stripe brut pour voir
-    // exactement ce qui bloque la création du compte Express. À re-masquer après.
+    // Erreur réelle conservée côté serveur (logs), message propre côté client.
     const stripeMsg = e?.raw?.message || e?.message || "erreur inconnue";
     const code = e?.code || e?.raw?.code;
     console.error("CONNECT_ONBOARD:", e?.type, code, stripeMsg);
     return NextResponse.json(
-      { error: `Stripe: ${stripeMsg}${code ? ` (code: ${code})` : ""}` },
+      { error: "Impossible de démarrer la connexion bancaire pour le moment. Réessayez plus tard." },
       { status: 502 },
     );
   }
