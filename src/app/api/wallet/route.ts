@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getConnectedBalance } from "@/lib/services/stripe-connect";
 import { getCached, setCache } from "@/lib/cache";
+import { PLANS, getMonthlyPayoutTotal } from "@/lib/services/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -39,12 +40,29 @@ export async function GET(req: Request) {
 
     const wallet = user?.wallet;
 
+    // Plafond de retrait mensuel restant (selon le plan ; admins/illimité = null)
+    const isAdmin = user?.role === "ADMIN" || user?.role === "ADMIN_OWNER";
+    const payoutCap = isAdmin || !user ? null : PLANS[user.plan].monthlyPayoutCap;
+    let payoutUsed = 0;
+    let payoutRemaining: number | null = null;
+    if (payoutCap !== null && user) {
+      payoutUsed = await getMonthlyPayoutTotal(user.id);
+      payoutRemaining = Math.max(0, payoutCap - payoutUsed);
+    }
+
     return NextResponse.json({
       availableBalance: stripeBalance.available || wallet?.availableBalance || 0,
       pendingBalance: stripeBalance.pending || wallet?.pendingBalance || 0,
       currency: "EUR",
       stripeConnected: !!user?.stripeAccountId,
       payoutsEnabled: user?.payoutsEnabled || false,
+      connectStatus: user?.stripeConnectStatus || "not_created",
+      payoutsDisabledReason: user?.payoutsDisabledReason || null,
+      plan: user?.plan || "STARTER",
+      planName: user ? PLANS[user.plan].name : "Starter",
+      payoutCap,
+      payoutUsed,
+      payoutRemaining,
     });
   } catch (e: any) {
     console.error("WALLET_GET:", e?.message);

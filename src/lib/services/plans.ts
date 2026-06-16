@@ -21,11 +21,21 @@ function getStripe(): Stripe {
 
 export const PLANS: Record<
   PlanTier,
-  { name: string; monthlyCap: number | null; price: number; lookupKey: string | null }
+  {
+    name: string;
+    monthlyCap: number | null;
+    // Plafond mensuel de RETRAIT en EUR cents (null = illimité). Indépendant du
+    // plafond d'encaissement. Mettre à null pour désactiver le plafonnement des
+    // retraits d'un plan. Ne bloque jamais un retrait sous le plafond : le
+    // vendeur récupère toujours son propre solde (cf. lib/auth/access.ts).
+    monthlyPayoutCap: number | null;
+    price: number;
+    lookupKey: string | null;
+  }
 > = {
-  STARTER: { name: "Starter", monthlyCap: 50_000, price: 0, lookupKey: null },
-  PRO: { name: "Pro", monthlyCap: 150_000, price: 799, lookupKey: "yourazz_pro_monthly" },
-  BUSINESS: { name: "Business", monthlyCap: null, price: 1999, lookupKey: "yourazz_business_monthly" },
+  STARTER: { name: "Starter", monthlyCap: 50_000, monthlyPayoutCap: 50_000, price: 0, lookupKey: null },
+  PRO: { name: "Pro", monthlyCap: 150_000, monthlyPayoutCap: 150_000, price: 799, lookupKey: "yourazz_pro_monthly" },
+  BUSINESS: { name: "Business", monthlyCap: null, monthlyPayoutCap: null, price: 1999, lookupKey: "yourazz_business_monthly" },
 };
 
 // L'ancien abonnement unique "Yourazz Access" donne les capacités du plan Pro.
@@ -87,6 +97,55 @@ export async function checkPlanCap(
   const used = await getMonthlyVolumeEur(receiver.id);
   if (used + amountEurCents > cap) {
     return { allowed: false, used, cap, planName: PLANS[receiver.plan].name };
+  }
+  return { allowed: true, used, cap };
+}
+
+// ─── Plafond de RETRAIT mensuel par plan ─────────────────────────────────────
+
+export type PayoutCapCheck =
+  | { allowed: true; used: number; cap: number | null }
+  | { allowed: false; used: number; cap: number; planName: string };
+
+/**
+ * Somme des retraits (EUR cents) déjà engagés ce mois-ci. On compte les payouts
+ * non échoués/annulés : PENDING, PROCESSING et PAID — un retrait en cours
+ * consomme le plafond même s'il n'est pas encore arrivé.
+ */
+export async function getMonthlyPayoutTotal(userId: string): Promise<number> {
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const agg = await db.payout.aggregate({
+    where: {
+      userId,
+      status: { in: ["PENDING", "PROCESSING", "PAID"] },
+      createdAt: { gte: startOfMonth },
+    },
+    _sum: { amount: true },
+  });
+
+  return agg._sum.amount ?? 0;
+}
+
+/**
+ * Vérifie qu'un nouveau retrait reste sous le plafond mensuel du plan.
+ * Les admins ne sont pas plafonnés. Un plan à monthlyPayoutCap = null = illimité.
+ * Ne remet jamais en cause le droit du vendeur à retirer SON solde : c'est une
+ * limite de cadence mensuelle, pas un blocage d'accès aux fonds.
+ */
+export async function checkPayoutCap(
+  user: { id: string; plan: PlanTier; role: string },
+  amountEurCents: number
+): Promise<PayoutCapCheck> {
+  const isAdmin = user.role === "ADMIN" || user.role === "ADMIN_OWNER";
+  const cap = PLANS[user.plan].monthlyPayoutCap;
+  if (isAdmin || cap === null) return { allowed: true, used: 0, cap: null };
+
+  const used = await getMonthlyPayoutTotal(user.id);
+  if (used + amountEurCents > cap) {
+    return { allowed: false, used, cap, planName: PLANS[user.plan].name };
   }
   return { allowed: true, used, cap };
 }

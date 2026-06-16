@@ -3,7 +3,11 @@ import Stripe from "stripe";
 import { db } from "@/lib/db";
 import { confirmPayin, failPayin, confirmPayout, failPayout } from "@/lib/services/ledger";
 import { confirmEvidence, failEvidence, handleDispute } from "@/lib/services/chargeback-defender";
-import { reversePlatformTransfer } from "@/lib/services/stripe-connect";
+import {
+  reversePlatformTransfer,
+  mapConnectStatus,
+  getPrimaryExternalAccount,
+} from "@/lib/services/stripe-connect";
 import { createNotification } from "@/lib/services/notifications";
 import { toEurApprox } from "@/lib/services/plans";
 
@@ -444,11 +448,28 @@ export async function POST(req: Request) {
         const accountId = obj.id as string;
         const user = await db.user.findFirst({ where: { stripeAccountId: accountId } });
         if (user) {
+          const account = obj as Stripe.Account;
+          const ext = getPrimaryExternalAccount(account);
           await db.user.update({
             where: { id: user.id },
             data: {
-              payoutsEnabled: obj.payouts_enabled || false,
-              stripeOnboarded: obj.details_submitted || false,
+              // champs historiques (conservés)
+              payoutsEnabled: account.payouts_enabled || false,
+              stripeOnboarded: account.details_submitted || false,
+              // champs Connect enrichis
+              stripeChargesEnabled: account.charges_enabled || false,
+              stripeDetailsSubmitted: account.details_submitted || false,
+              stripeConnectStatus: mapConnectStatus(account),
+              payoutsDisabledReason: account.requirements?.disabled_reason || null,
+              stripeCountry: account.country || undefined,
+              stripeDefaultCurrency: account.default_currency
+                ? account.default_currency.toUpperCase()
+                : undefined,
+              ...(ext && {
+                bankAccountLast4: ext.last4,
+                bankAccountCountry: ext.country,
+                bankAccountCurrency: ext.currency,
+              }),
             },
           });
         }

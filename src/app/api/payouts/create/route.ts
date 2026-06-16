@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 import { requireActiveAccess } from "@/lib/auth/access";
 import { rateLimit } from "@/lib/rate-limit";
+import { checkPayoutCap } from "@/lib/services/plans";
 import {
   createConnectedPayout,
   createPlatformTransfer,
@@ -87,6 +88,19 @@ export async function POST(req: Request) {
     if (user.wallet.availableBalance < v.amount) {
       return NextResponse.json({
         error: `Solde insuffisant. Disponible : ${(user.wallet.availableBalance / 100).toFixed(2)} EUR`,
+      }, { status: 400 });
+    }
+
+    // Plafond mensuel de retrait selon le plan (Business illimité, admins exemptés).
+    // N'empêche jamais de récupérer son solde sous le plafond — limite de cadence.
+    const capCheck = await checkPayoutCap(
+      { id: user.id, plan: user.plan, role: user.role },
+      v.amount,
+    );
+    if (!capCheck.allowed) {
+      const remaining = Math.max(0, capCheck.cap - capCheck.used);
+      return NextResponse.json({
+        error: `Plafond de retrait mensuel ${capCheck.planName} atteint (${(capCheck.cap / 100).toFixed(0)} EUR/mois). Restant ce mois-ci : ${(remaining / 100).toFixed(2)} EUR. Passez à un plan supérieur pour augmenter ce plafond.`,
       }, { status: 400 });
     }
 

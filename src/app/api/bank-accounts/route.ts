@@ -5,6 +5,13 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 import { maskIban } from "@/lib/utils";
 import { addExternalBankAccount, createConnectedAccount } from "@/lib/services/stripe-connect";
+import {
+  isCountrySupported,
+  isPayoutCurrencySupported,
+  normalizeCountry,
+  normalizeCurrency,
+  UNSUPPORTED_COUNTRY_MESSAGE,
+} from "@/lib/services/stripe-countries";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +53,16 @@ export async function POST(req: Request) {
     const body = await req.json();
     const v = addBankAccountSchema.parse(body);
 
+    const country = normalizeCountry(v.country);
+    const currency = normalizeCurrency(v.currency);
+
+    // International : on accepte les IBAN étrangers que Stripe Connect supporte.
+    // Garde préventive avec message propre (la source de vérité reste Stripe :
+    // une erreur Stripe éventuelle est remontée plus bas).
+    if (!isCountrySupported(country) || !isPayoutCurrencySupported(currency)) {
+      return NextResponse.json({ error: UNSUPPORTED_COUNTRY_MESSAGE }, { status: 422 });
+    }
+
     const user = await db.user.findUnique({ where: { id: access.userId } });
     if (!user) return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
 
@@ -57,13 +74,18 @@ export async function POST(req: Request) {
         userId: user.id,
         email: user.email,
         name: user.name || undefined,
+        country,
         tosAcceptanceIp: ip,
       });
       stripeAccountId = result.stripeAccountId;
 
       await db.user.update({
         where: { id: user.id },
-        data: { stripeAccountId },
+        data: {
+          stripeAccountId,
+          stripeConnectStatus: "pending_onboarding",
+          stripeCountry: country,
+        },
       });
     }
 
@@ -71,8 +93,8 @@ export async function POST(req: Request) {
       stripeAccountId,
       iban: v.iban,
       holderName: v.holderName,
-      country: v.country.toUpperCase(),
-      currency: v.currency.toLowerCase(),
+      country,
+      currency: currency.toLowerCase(),
     });
 
     const account = await db.bankAccount.create({
@@ -80,8 +102,8 @@ export async function POST(req: Request) {
         userId: user.id,
         ibanMasked: maskIban(v.iban),
         holderName: v.holderName,
-        country: v.country.toUpperCase(),
-        currency: v.currency.toUpperCase(),
+        country,
+        currency,
         bankName: stripeResult.bankName,
         status: "VERIFIED",
         isDefault: true,
@@ -92,6 +114,17 @@ export async function POST(req: Request) {
     await db.bankAccount.updateMany({
       where: { userId: user.id, id: { not: account.id } },
       data: { isDefault: false },
+    });
+
+    // Mémorise le compte bancaire par défaut sur le user (affichage dashboard +
+    // synchro avec account.updated). last4 jamais l'IBAN complet.
+    await db.user.update({
+      where: { id: user.id },
+      data: {
+        bankAccountLast4: stripeResult.last4 || undefined,
+        bankAccountCountry: country,
+        bankAccountCurrency: currency,
+      },
     });
 
     await db.auditLog.create({

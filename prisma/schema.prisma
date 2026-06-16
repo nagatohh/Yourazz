@@ -22,6 +22,17 @@ model User {
   stripeCustomerId String?    @unique
   stripeOnboarded  Boolean    @default(false)
   payoutsEnabled   Boolean    @default(false)
+  // ─── Stripe Connect (champs additifs — synchronisés par webhook account.updated) ───
+  // stripeConnectStatus : not_created | pending_onboarding | restricted | active | disabled
+  stripeConnectStatus    String   @default("not_created")
+  stripeChargesEnabled   Boolean  @default(false)
+  stripeDetailsSubmitted Boolean  @default(false)
+  stripeCountry          String?
+  stripeDefaultCurrency  String?
+  payoutsDisabledReason  String?
+  bankAccountLast4       String?
+  bankAccountCountry     String?
+  bankAccountCurrency    String?
   dailyVolume      Int        @default(0)
   monthlyVolume    Int        @default(0)
   plan             PlanTier   @default(STARTER)

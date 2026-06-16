@@ -174,16 +174,33 @@ export default function BankAccountPage() {
                   onChange={(e) => setCountry(e.target.value)}
                   className="flex h-11 w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 text-sm text-white focus:border-brand-500/50 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                 >
-                  <option value="FR">France</option>
-                  <option value="BE">Belgique</option>
-                  <option value="DE">Allemagne</option>
-                  <option value="ES">Espagne</option>
-                  <option value="IT">Italie</option>
-                  <option value="NL">Pays-Bas</option>
-                  <option value="LU">Luxembourg</option>
-                  <option value="PT">Portugal</option>
-                  <option value="AT">Autriche</option>
-                  <option value="IE">Irlande</option>
+                  <optgroup label="Zone euro">
+                    <option value="FR">France</option>
+                    <option value="BE">Belgique</option>
+                    <option value="DE">Allemagne</option>
+                    <option value="ES">Espagne</option>
+                    <option value="IT">Italie</option>
+                    <option value="NL">Pays-Bas</option>
+                    <option value="LU">Luxembourg</option>
+                    <option value="PT">Portugal</option>
+                    <option value="AT">Autriche</option>
+                    <option value="IE">Irlande</option>
+                    <option value="FI">Finlande</option>
+                    <option value="GR">Grèce</option>
+                  </optgroup>
+                  <optgroup label="Europe (hors euro)">
+                    <option value="GB">Royaume-Uni</option>
+                    <option value="CH">Suisse</option>
+                    <option value="SE">Suède</option>
+                    <option value="NO">Norvège</option>
+                    <option value="DK">Danemark</option>
+                    <option value="PL">Pologne</option>
+                  </optgroup>
+                  <optgroup label="International">
+                    <option value="US">États-Unis</option>
+                    <option value="CA">Canada</option>
+                    <option value="AU">Australie</option>
+                  </optgroup>
                 </select>
               </div>
               <div>
@@ -194,9 +211,10 @@ export default function BankAccountPage() {
                   className="flex h-11 w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 text-sm text-white focus:border-brand-500/50 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                 >
                   <option value="EUR">EUR - Euro</option>
+                  <option value="USD">USD - Dollar américain</option>
                   <option value="GBP">GBP - Livre Sterling</option>
-                  <option value="CHF">CHF - Franc Suisse</option>
                 </select>
+                <p className="text-xs text-zinc-500 mt-1">Devises de retrait supportées : EUR, USD, GBP.</p>
               </div>
             </div>
 
@@ -243,9 +261,10 @@ export default function BankAccountPage() {
                     <div>
                       <p className="font-medium text-white">{a.holderName}</p>
                       <p className="text-sm text-zinc-400 font-mono mt-0.5">{a.ibanMasked}</p>
-                      {a.bankName && (
-                        <p className="text-xs text-zinc-500 mt-0.5">{a.bankName}</p>
-                      )}
+                      <p className="text-xs text-zinc-500 mt-0.5">
+                        {a.bankName ? `${a.bankName} · ` : ""}
+                        {a.country} · {a.currency}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

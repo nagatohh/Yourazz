@@ -12,6 +12,7 @@
     "db:studio": "prisma studio",
     "test:permissions": "npx tsx scripts/test-permissions.ts",
     "security:check": "npx tsx scripts/security-check.ts",
+    "security:payouts": "npx tsx scripts/security-check-payouts.ts",
     "guardian:check": "npx tsx scripts/guardian-check.ts",
     "guardian:repair": "npx tsx scripts/guardian-repair-safe.ts",
     "guardian:wallets": "npx tsx scripts/wallet-consistency-check.ts",

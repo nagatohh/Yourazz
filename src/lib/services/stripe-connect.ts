@@ -85,27 +85,45 @@ export async function deleteExternalBankAccount(params: {
   );
 }
 
-export async function getConnectedBalance(stripeAccountId: string): Promise<{
+/**
+ * Solde du compte CONNECTÉ du vendeur, pour une devise donnée (défaut EUR pour
+ * compat). Toujours scopé via { stripeAccount } → jamais le solde plateforme.
+ * `byCurrency` expose le détail multi-devises sans casser les appelants.
+ */
+export async function getConnectedBalance(
+  stripeAccountId: string,
+  currency = "eur"
+): Promise<{
   available: number;
   pending: number;
   currency: string;
+  byCurrency: Record<string, { available: number; pending: number }>;
 }> {
   const stripe = getStripe();
+  const cur = currency.toLowerCase();
 
   const balance = await stripe.balance.retrieve(
     {},
     { stripeAccount: stripeAccountId }
   );
 
+  const byCurrency: Record<string, { available: number; pending: number }> = {};
+  for (const b of balance.available) {
+    byCurrency[b.currency] = { available: b.amount, pending: byCurrency[b.currency]?.pending ?? 0 };
+  }
+  for (const b of balance.pending) {
+    byCurrency[b.currency] = { available: byCurrency[b.currency]?.available ?? 0, pending: b.amount };
+  }
+
   const available = balance.available
-    .filter((b) => b.currency === "eur")
+    .filter((b) => b.currency === cur)
     .reduce((sum, b) => sum + b.amount, 0);
 
   const pending = balance.pending
-    .filter((b) => b.currency === "eur")
+    .filter((b) => b.currency === cur)
     .reduce((sum, b) => sum + b.amount, 0);
 
-  return { available, pending, currency: "eur" };
+  return { available, pending, currency: cur, byCurrency };
 }
 
 export async function createConnectedPayout(params: {
@@ -168,12 +186,49 @@ export async function reversePlatformTransfer(transferId: string): Promise<void>
   await stripe.transfers.createReversal(transferId);
 }
 
+// Connect status dérivé : not_created | pending_onboarding | restricted | active | disabled
+export type ConnectStatus =
+  | "not_created"
+  | "pending_onboarding"
+  | "restricted"
+  | "active"
+  | "disabled";
+
+export function mapConnectStatus(account: Stripe.Account): ConnectStatus {
+  if (account.payouts_enabled && account.charges_enabled) return "active";
+  const disabledReason = account.requirements?.disabled_reason || null;
+  if (disabledReason) {
+    // rejected.* / une raison persistante = compte bloqué ; sinon il manque des infos
+    return disabledReason.startsWith("rejected") ? "disabled" : "restricted";
+  }
+  if (!account.details_submitted) return "pending_onboarding";
+  return "restricted";
+}
+
+/** Premier compte externe (IBAN) rattaché, s'il existe. */
+export function getPrimaryExternalAccount(
+  account: Stripe.Account
+): { last4?: string; country?: string; currency?: string } | null {
+  const ext = account.external_accounts?.data?.[0] as Stripe.BankAccount | undefined;
+  if (!ext) return null;
+  return {
+    last4: ext.last4 || undefined,
+    country: ext.country || undefined,
+    currency: ext.currency ? ext.currency.toUpperCase() : undefined,
+  };
+}
+
 export async function getAccountStatus(stripeAccountId: string): Promise<{
   payoutsEnabled: boolean;
   chargesEnabled: boolean;
   detailsSubmitted: boolean;
   requiresAction: boolean;
   currentlyDue: string[];
+  connectStatus: ConnectStatus;
+  disabledReason: string | null;
+  country: string | null;
+  defaultCurrency: string | null;
+  externalAccount: { last4?: string; country?: string; currency?: string } | null;
 }> {
   const stripe = getStripe();
 
@@ -185,5 +240,10 @@ export async function getAccountStatus(stripeAccountId: string): Promise<{
     detailsSubmitted: account.details_submitted || false,
     requiresAction: (account.requirements?.currently_due?.length || 0) > 0,
     currentlyDue: account.requirements?.currently_due || [],
+    connectStatus: mapConnectStatus(account),
+    disabledReason: account.requirements?.disabled_reason || null,
+    country: account.country || null,
+    defaultCurrency: account.default_currency ? account.default_currency.toUpperCase() : null,
+    externalAccount: getPrimaryExternalAccount(account),
   };
 }

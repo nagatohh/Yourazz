@@ -34,7 +34,47 @@ interface WalletInfo {
   currency: string;
   stripeConnected: boolean;
   payoutsEnabled: boolean;
+  connectStatus: "not_created" | "pending_onboarding" | "restricted" | "active" | "disabled";
+  payoutsDisabledReason: string | null;
+  plan: string;
+  planName: string;
+  payoutCap: number | null;
+  payoutUsed: number;
+  payoutRemaining: number | null;
 }
+
+// États clairs du compte Connect (cf. section 14 du cahier des charges).
+const connectStateConfig: Record<
+  WalletInfo["connectStatus"],
+  { message: string; variant: "success" | "warning" | "error" | "info"; icon: typeof CheckCircle2; cta?: boolean }
+> = {
+  not_created: {
+    message: "Connectez votre compte bancaire pour recevoir vos retraits.",
+    variant: "info",
+    icon: Building2,
+    cta: true,
+  },
+  pending_onboarding: {
+    message: "Stripe demande des informations supplémentaires avant d'activer vos retraits.",
+    variant: "warning",
+    icon: Clock,
+  },
+  restricted: {
+    message: "Stripe demande des informations supplémentaires avant d'activer vos retraits.",
+    variant: "warning",
+    icon: AlertCircle,
+  },
+  active: {
+    message: "Votre compte bancaire est prêt à recevoir des retraits.",
+    variant: "success",
+    icon: CheckCircle2,
+  },
+  disabled: {
+    message: "Retrait indisponible pour le moment. Vérifiez votre compte bancaire ou contactez le support.",
+    variant: "error",
+    icon: AlertCircle,
+  },
+};
 
 const statusConfig: Record<string, { label: string; variant: "success" | "warning" | "error" | "info"; icon: typeof CheckCircle2 }> = {
   PENDING: { label: "En attente", variant: "warning", icon: Clock },
@@ -146,6 +186,36 @@ export default function PayoutsPage() {
         </p>
       </div>
 
+      {/* Statut du compte Connect (états clairs) */}
+      {wallet && (() => {
+        const cfg = connectStateConfig[wallet.connectStatus] || connectStateConfig.not_created;
+        const Icon = cfg.icon;
+        const tone = {
+          success: "border-emerald-500/20 bg-emerald-500/[0.04] text-emerald-300",
+          warning: "border-amber-500/20 bg-amber-500/[0.04] text-amber-300",
+          error: "border-red-500/20 bg-red-500/[0.04] text-red-300",
+          info: "border-brand-500/20 bg-brand-500/[0.04] text-brand-300",
+        }[cfg.variant];
+        return (
+          <div className={`flex items-start gap-3 rounded-xl border p-4 ${tone}`}>
+            <Icon className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm">{cfg.message}</p>
+              {wallet.payoutsDisabledReason && (
+                <p className="text-xs opacity-70 mt-1">Motif Stripe : {wallet.payoutsDisabledReason}</p>
+              )}
+            </div>
+            {cfg.cta && (
+              <a href="/dashboard/bank-account">
+                <Button variant="outline" size="sm">
+                  Connecter <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </Button>
+              </a>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Balance overview */}
       <div className="grid gap-3 sm:grid-cols-3">
         <Card className="p-4 border-brand-500/10 bg-gradient-to-br from-brand-500/[0.04] to-transparent">
@@ -153,6 +223,11 @@ export default function PayoutsPage() {
           <p className="text-xl font-bold text-white mt-1">
             {wallet ? fmt(wallet.availableBalance) : "—"}
           </p>
+          {wallet && wallet.payoutRemaining !== null && (
+            <p className="text-[11px] text-zinc-500 mt-1.5">
+              Plafond {wallet.planName} restant ce mois : {fmt(wallet.payoutRemaining)}
+            </p>
+          )}
         </Card>
         <Card className="p-4">
           <p className="text-xs text-zinc-500">En attente de clearing</p>
