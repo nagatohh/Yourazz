@@ -92,7 +92,9 @@ function addSecurityHeaders(res: NextResponse, pathname: string) {
     res.headers.set("X-Frame-Options", "DENY");
   } else {
     res.headers.set("X-Frame-Options", "DENY");
-    res.headers.set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://va.vercel-scripts.com; frame-src https://js.stripe.com https://hooks.stripe.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.stripe.com; connect-src 'self' https://api.stripe.com https://va.vercel-scripts.com; font-src 'self'; frame-ancestors 'none'");
+    // *.stripe.com + *.stripecdn.com : requis par les composants Connect EMBARQUÉS
+    // (connect-js.stripe.com, iframes, assets) sur /dashboard/bank-account.
+    res.headers.set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.stripe.com https://va.vercel-scripts.com; frame-src https://*.stripe.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.stripe.com https://*.stripecdn.com; connect-src 'self' https://*.stripe.com https://va.vercel-scripts.com; font-src 'self'; frame-ancestors 'none'");
   }
 }
 
