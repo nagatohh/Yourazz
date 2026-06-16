@@ -23,6 +23,11 @@ export async function createConnectedAccount(params: {
     country: params.country || "FR",
     email: params.email,
     capabilities: {
+      // card_payments + transfers : le combo standard. Demander `transfers` SEUL
+      // exige une approbation Stripe (« transfers without card_payments »).
+      // card_payments n'est pas utilisé par notre flux (transfer→payout), mais
+      // débloque la création sans approbation et colle au profil plateforme.
+      card_payments: { requested: true },
       transfers: { requested: true },
     },
     business_profile: {
