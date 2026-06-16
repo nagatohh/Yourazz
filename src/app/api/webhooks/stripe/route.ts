@@ -478,16 +478,32 @@ export async function POST(req: Request) {
 
       case "account.external_account.created":
       case "account.external_account.updated": {
-        const bankAccountStripeId = obj.id as string;
-        const bankAccount = await db.bankAccount.findFirst({
-          where: { providerBankAccountId: bankAccountStripeId },
-        });
-        if (bankAccount) {
-          const newStatus = obj.status === "verified" ? "VERIFIED" : obj.status === "errored" ? "REJECTED" : "PENDING";
-          await db.bankAccount.update({
-            where: { id: bankAccount.id },
-            data: { status: newStatus as any, bankName: obj.bank_name || bankAccount.bankName },
-          });
+        // En Express, l'IBAN est saisi sur la page Stripe : on reflète ce compte
+        // externe en local (upsert) pour que /api/payouts/create le retrouve.
+        if (obj.object === "bank_account") {
+          const connectedAccountId = obj.account as string;
+          const owner = await db.user.findFirst({ where: { stripeAccountId: connectedAccountId } });
+          if (owner) {
+            const last4 = obj.last4 as string | undefined;
+            await db.bankAccount.upsert({
+              where: { providerBankAccountId: obj.id as string },
+              create: {
+                userId: owner.id,
+                providerBankAccountId: obj.id as string,
+                ibanMasked: last4 ? `•••• ${last4}` : "••••",
+                holderName: obj.account_holder_name || owner.name || "Titulaire",
+                bankName: obj.bank_name || null,
+                country: obj.country || "FR",
+                currency: (obj.currency || "eur").toUpperCase(),
+                status: obj.status === "errored" ? "REJECTED" : "VERIFIED",
+                isDefault: obj.default_for_currency ?? true,
+              },
+              update: {
+                status: obj.status === "errored" ? "REJECTED" : "VERIFIED",
+                bankName: obj.bank_name || undefined,
+              },
+            });
+          }
         }
         break;
       }

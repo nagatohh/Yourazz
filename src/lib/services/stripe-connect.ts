@@ -11,28 +11,15 @@ export async function createConnectedAccount(params: {
   email: string;
   name?: string;
   country?: string;
-  tosAcceptanceIp?: string; // conservé pour compat ; l'IP de ToS est captée par Stripe à la création du token
+  tosAcceptanceIp?: string; // conservé pour compat (non utilisé : Express capte le ToS sur sa page hébergée)
 }): Promise<{ stripeAccountId: string }> {
   const stripe = getStripe();
 
-  // Plateforme FR + comptes Custom (controller[requirement_collection]=application) :
-  // Stripe IMPOSE la création via un account token (identité + ToS dans le token),
-  // pas de tos_acceptance/individual passés en clair.
-  // cf. https://stripe.com/docs/connect/account-tokens
-  const accountToken = await stripe.tokens.create({
-    account: {
-      business_type: "individual",
-      individual: {
-        email: params.email,
-        first_name: params.name?.split(" ")[0] || undefined,
-        last_name: params.name?.split(" ").slice(1).join(" ") || undefined,
-      },
-      tos_shown_and_accepted: true,
-    },
-  });
-
+  // Comptes Express : Stripe héberge l'onboarding (identité, KYC, pièce d'identité,
+  // IBAN) et assume la collecte des exigences + le ToS. La plateforme ne manipule
+  // aucune donnée bancaire/PII en clair. cf. https://stripe.com/docs/connect/express-accounts
   const account = await stripe.accounts.create({
-    type: "custom",
+    type: "express",
     country: params.country || "FR",
     email: params.email,
     capabilities: {
@@ -42,11 +29,36 @@ export async function createConnectedAccount(params: {
       mcc: "7299",
       url: process.env.NEXT_PUBLIC_APP_URL || "https://yourazz.xyz",
     },
-    account_token: accountToken.id,
     metadata: { userId: params.userId },
   });
 
   return { stripeAccountId: account.id };
+}
+
+/**
+ * Lien d'onboarding hébergé par Stripe (Express). Le vendeur y renseigne son
+ * identité + IBAN, puis revient sur Yourazz. À usage unique et court-vivant.
+ */
+export async function createAccountLink(params: {
+  stripeAccountId: string;
+  refreshUrl: string;
+  returnUrl: string;
+}): Promise<{ url: string }> {
+  const stripe = getStripe();
+  const link = await stripe.accountLinks.create({
+    account: params.stripeAccountId,
+    refresh_url: params.refreshUrl,
+    return_url: params.returnUrl,
+    type: "account_onboarding",
+  });
+  return { url: link.url };
+}
+
+/** Lien vers le dashboard Express (gestion compte bancaire après onboarding). */
+export async function createLoginLink(stripeAccountId: string): Promise<{ url: string }> {
+  const stripe = getStripe();
+  const link = await stripe.accounts.createLoginLink(stripeAccountId);
+  return { url: link.url };
 }
 
 export async function addExternalBankAccount(params: {
@@ -218,13 +230,16 @@ export function mapConnectStatus(account: Stripe.Account): ConnectStatus {
 /** Premier compte externe (IBAN) rattaché, s'il existe. */
 export function getPrimaryExternalAccount(
   account: Stripe.Account
-): { last4?: string; country?: string; currency?: string } | null {
+): { id?: string; last4?: string; country?: string; currency?: string; bankName?: string; holderName?: string } | null {
   const ext = account.external_accounts?.data?.[0] as Stripe.BankAccount | undefined;
   if (!ext) return null;
   return {
+    id: ext.id || undefined,
     last4: ext.last4 || undefined,
     country: ext.country || undefined,
     currency: ext.currency ? ext.currency.toUpperCase() : undefined,
+    bankName: ext.bank_name || undefined,
+    holderName: ext.account_holder_name || undefined,
   };
 }
 
@@ -238,7 +253,14 @@ export async function getAccountStatus(stripeAccountId: string): Promise<{
   disabledReason: string | null;
   country: string | null;
   defaultCurrency: string | null;
-  externalAccount: { last4?: string; country?: string; currency?: string } | null;
+  externalAccount: {
+    id?: string;
+    last4?: string;
+    country?: string;
+    currency?: string;
+    bankName?: string;
+    holderName?: string;
+  } | null;
 }> {
   const stripe = getStripe();
 
