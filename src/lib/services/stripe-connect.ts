@@ -66,6 +66,24 @@ export async function createLoginLink(stripeAccountId: string): Promise<{ url: s
   return { url: link.url };
 }
 
+/**
+ * Account Session pour l'onboarding EMBARQUÉ (composant <ConnectAccountOnboarding/>).
+ * Le client_secret est consommé côté navigateur par @stripe/connect-js : le vendeur
+ * fait sa vérification d'identité + IBAN sans quitter Yourazz.
+ */
+export async function createAccountSession(
+  stripeAccountId: string
+): Promise<{ clientSecret: string }> {
+  const stripe = getStripe();
+  const session = await stripe.accountSessions.create({
+    account: stripeAccountId,
+    components: {
+      account_onboarding: { enabled: true },
+    },
+  });
+  return { clientSecret: session.client_secret };
+}
+
 export async function addExternalBankAccount(params: {
   stripeAccountId: string;
   iban: string;

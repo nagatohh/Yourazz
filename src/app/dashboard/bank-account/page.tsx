@@ -1,11 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { apiFetch } from "@/lib/fetch";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Building2, Shield, AlertCircle, CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
+
+// Composant Stripe (SDK navigateur) : chargé uniquement côté client.
+const ConnectOnboarding = dynamic(
+  () => import("@/components/dashboard/connect-onboarding").then((m) => m.ConnectOnboarding),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center gap-2 py-6 justify-center text-zinc-400">
+        <Loader2 className="h-4 w-4 animate-spin" /> Chargement de la vérification…
+      </div>
+    ),
+  },
+);
 
 interface BankAccount {
   id: string;
@@ -27,8 +41,9 @@ const statusMap: Record<string, { label: string; variant: "success" | "warning" 
 
 export default function BankAccountPage() {
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
-  const [connecting, setConnecting] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [openingHosted, setOpeningHosted] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -37,55 +52,59 @@ export default function BankAccountPage() {
       .then((r) => r.json())
       .then((d) => setAccounts(d.accounts || []));
 
+  // Resynchronise le statut Connect depuis Stripe (après l'onboarding embarqué
+  // ou un retour de la page hébergée), sans attendre le webhook.
+  const syncStatus = async () => {
+    setSyncing(true);
+    try {
+      const res = await apiFetch("/api/stripe/connect/status");
+      const d = await res.json();
+      if (d.payoutsEnabled) {
+        setSuccess("Votre compte bancaire est connecté et prêt à recevoir des retraits.");
+        setError("");
+      } else if (d.connectStatus === "pending_onboarding" || (d.currentlyDue?.length ?? 0) > 0) {
+        setError("Stripe a encore besoin d'informations. Reprenez la vérification pour la terminer.");
+      }
+    } catch {
+      /* silencieux : on rechargera juste la liste */
+    } finally {
+      setSyncing(false);
+      loadAccounts();
+    }
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const onboarding = params.get("onboarding");
-
-    if (onboarding === "return") {
-      // Retour de l'onboarding Stripe : on resynchronise le statut sans attendre
-      // le webhook, puis on recharge les comptes.
-      setSyncing(true);
-      apiFetch("/api/stripe/connect/status")
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.payoutsEnabled) {
-            setSuccess("Votre compte bancaire est connecté et prêt à recevoir des retraits.");
-          } else if (d.connectStatus === "pending_onboarding" || (d.currentlyDue?.length ?? 0) > 0) {
-            setError("Stripe a encore besoin d'informations avant d'activer vos retraits. Reprenez la connexion.");
-          }
-        })
-        .catch(() => {})
-        .finally(() => {
-          setSyncing(false);
-          loadAccounts();
-          window.history.replaceState({}, "", "/dashboard/bank-account");
-        });
+    if (params.get("onboarding") === "return") {
+      syncStatus();
+      window.history.replaceState({}, "", "/dashboard/bank-account");
     } else {
       loadAccounts();
-      if (onboarding === "refresh") {
-        setError("La connexion a été interrompue. Relancez-la pour terminer.");
-        window.history.replaceState({}, "", "/dashboard/bank-account");
-      }
     }
   }, []);
 
-  const handleConnect = async () => {
+  // Repli : page d'onboarding hébergée par Stripe (si le composant embarqué échoue).
+  const handleHostedFallback = async () => {
     setError("");
-    setConnecting(true);
+    setOpeningHosted(true);
     try {
       const res = await apiFetch("/api/stripe/connect/onboard", { method: "POST" });
       const data = await res.json();
       if (!res.ok || !data.url) {
         setError(data.error || "Impossible de démarrer la connexion.");
-        setConnecting(false);
+        setOpeningHosted(false);
         return;
       }
-      // Redirection vers l'onboarding hébergé par Stripe
       window.location.href = data.url;
     } catch {
       setError("Erreur réseau");
-      setConnecting(false);
+      setOpeningHosted(false);
     }
+  };
+
+  const handleExit = () => {
+    setShowOnboarding(false);
+    syncStatus();
   };
 
   const hasVerified = accounts.some((a) => a.status === "VERIFIED");
@@ -93,23 +112,18 @@ export default function BankAccountPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-          Compte bancaire
-        </h1>
-        <p className="text-sm text-zinc-500 mt-1">
-          Connectez votre compte pour recevoir vos retraits
-        </p>
+        <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Compte bancaire</h1>
+        <p className="text-sm text-zinc-500 mt-1">Connectez votre compte pour recevoir vos retraits</p>
       </div>
 
       {/* Security notice */}
       <div className="flex items-start gap-3 rounded-xl border border-brand-500/10 bg-brand-500/[0.03] p-4">
         <Shield className="h-5 w-5 text-brand-400 flex-shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm text-zinc-300">Connexion sécurisée via Stripe</p>
+          <p className="text-sm text-zinc-300">Vérification sécurisée par Stripe — sans quitter Yourazz</p>
           <p className="text-xs text-zinc-500 mt-0.5">
-            Vos informations bancaires et votre identité sont saisies directement sur la
-            page sécurisée de Stripe (notre prestataire de paiement agréé). Yourazz ne voit
-            jamais votre IBAN complet ni vos pièces d&apos;identité.
+            Pour les particuliers, c&apos;est rapide : nom, date de naissance et adresse suffisent en général.
+            Yourazz ne voit jamais votre IBAN complet ni vos pièces d&apos;identité.
           </p>
         </div>
       </div>
@@ -117,7 +131,7 @@ export default function BankAccountPage() {
       {syncing && (
         <div className="flex items-center gap-2 rounded-lg bg-white/[0.03] border border-white/[0.06] px-4 py-3">
           <Loader2 className="h-4 w-4 text-brand-400 animate-spin" />
-          <p className="text-sm text-zinc-400">Vérification de votre connexion Stripe…</p>
+          <p className="text-sm text-zinc-400">Vérification de votre statut…</p>
         </div>
       )}
       {error && (
@@ -133,27 +147,37 @@ export default function BankAccountPage() {
         </div>
       )}
 
-      {/* Connect / accounts */}
-      {accounts.length === 0 ? (
+      {/* Onboarding embarqué */}
+      {showOnboarding ? (
+        <Card className="p-4 sm:p-6">
+          <ConnectOnboarding onExit={handleExit} />
+          <div className="mt-4 flex items-center justify-between gap-3 border-t border-white/[0.06] pt-4">
+            <button
+              onClick={handleHostedFallback}
+              disabled={openingHosted}
+              className="text-xs text-zinc-500 hover:text-zinc-300 underline underline-offset-2"
+            >
+              {openingHosted ? "Ouverture…" : "Un problème ? Ouvrir la page Stripe à la place"}
+            </button>
+            <button
+              onClick={() => setShowOnboarding(false)}
+              className="text-xs text-zinc-500 hover:text-zinc-300"
+            >
+              Fermer
+            </button>
+          </div>
+        </Card>
+      ) : accounts.length === 0 ? (
         <Card className="p-6 sm:p-8 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-500/10">
             <Building2 className="h-6 w-6 text-brand-400" />
           </div>
           <CardTitle className="text-base">Connectez votre compte bancaire</CardTitle>
           <CardDescription className="text-xs mt-1 max-w-md mx-auto">
-            Vous serez redirigé vers Stripe pour renseigner votre identité et votre IBAN.
-            L&apos;opération prend quelques minutes et active vos retraits.
+            Quelques informations à vérifier (2 minutes), directement ici. Cela active vos retraits.
           </CardDescription>
-          <Button onClick={handleConnect} disabled={connecting} className="mt-5">
-            {connecting ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Redirection…
-              </>
-            ) : (
-              <>
-                Connecter via Stripe <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
-              </>
-            )}
+          <Button onClick={() => setShowOnboarding(true)} className="mt-5">
+            Commencer la vérification
           </Button>
         </Card>
       ) : (
@@ -188,21 +212,12 @@ export default function BankAccountPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <Button onClick={handleConnect} variant="outline" size="sm" disabled={connecting}>
-              {connecting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Redirection…
-                </>
-              ) : (
-                <>
-                  {hasVerified ? "Mettre à jour sur Stripe" : "Terminer la connexion"}
-                  <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
-                </>
-              )}
+            <Button onClick={() => setShowOnboarding(true)} variant="outline" size="sm">
+              {hasVerified ? "Mettre à jour mes informations" : "Terminer la vérification"}
             </Button>
             {!hasVerified && (
               <p className="text-xs text-amber-400">
-                Connexion incomplète : terminez-la sur Stripe pour activer vos retraits.
+                Vérification incomplète : terminez-la pour activer vos retraits.
               </p>
             )}
           </div>
